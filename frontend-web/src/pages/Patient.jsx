@@ -171,7 +171,7 @@ const AddPanel = ({ onClose, onSaved }) => {
   const set = k => v => setForm(p => ({ ...p, [k]: v }));
   const inp = "w-full appearance-none px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white";
   useEffect(() => {
-    apiClient.get('/cases/all', { params: { limit: 200 } }).then(r => setCases(r.data.cases || [])).catch(() => {}).finally(() => setLoadingCases(false));
+    apiClient.get('/cases', { params: { limit: 200 } }).then(r => setCases(r.data.cases || [])).catch(() => {}).finally(() => setLoadingCases(false));
   }, []);
   const handleSubmit = async () => {
     setError(null);

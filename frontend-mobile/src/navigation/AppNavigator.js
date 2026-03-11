@@ -6,6 +6,7 @@ import RegisterScreen    from '../screens/RegisterScreen';
 import AddCaseScreen     from '../screens/AddCaseScreen';
 import CaseDetail        from '../screens/CaseDetail';
 import BottomTabNavigator from './BottomTabNavigator';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export default function AppNavigator() {
       {/* Auth screens */}
       <Stack.Screen name="Login"    component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
 
       {/* Main app — bottom tabs */}
       <Stack.Screen name="Dashboard" component={BottomTabNavigator} />

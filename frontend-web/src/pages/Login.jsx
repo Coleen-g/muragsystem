@@ -230,9 +230,15 @@ export default function Login() {
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
+
+              {/* ✅ Navigates to ForgotPassword page */}
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             {/* Submit Button */}

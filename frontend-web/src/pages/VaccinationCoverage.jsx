@@ -17,7 +17,7 @@ const isDoseDelayed = (dateStr) => {
 
 const getComplianceStatus = (vaccination) => {
   if (!vaccination) return 'No Record';
-  const { day0, day3, day7, day14, day28 } = vaccination.schedule || {};
+  const { day0, day3, day7, day14, day28 } = vaccination;
   const filled = [day0, day3, day7, day14, day28].filter(Boolean).length;
   if (filled === 5) return 'Complete';
   if (filled === 0) return 'Not Started';
@@ -88,19 +88,22 @@ export default function VaccinationCoverage() {
   const [vaccinations, setVaccinations] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
+  const [lastUpdated, setLastUpdated]   = useState(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [cR, pR, vR] = await Promise.all([
-        apiClient.get('/cases/all', { params: { limit: 500 } }),
+        apiClient.get('/cases', { params: { limit: 500 } }),
         apiClient.get('/patients', { params: { limit: 500 } }),
         apiClient.get('/vaccinations', { params: { limit: 500 } }),
       ]);
       setCases(cR.data.cases || []);
       setPatients(pR.data.patients || []);
       setVaccinations(vR.data.vaccinations || []);
+      setLastUpdated(new Date());
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {
@@ -110,11 +113,18 @@ export default function VaccinationCoverage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // ── Derived data ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
-  // Map vaccination by patientRef for quick lookup
-  const vacByPatient = {};
-  vaccinations.forEach(v => { if (v.patientRef) vacByPatient[v.patientRef] = v; });
+
+  // ── Derived data ─────────────────────────────────────────────────────────────
+// ✅ Change patientId → patientRef
+const vacByPatient = {};
+vaccinations.forEach(v => { if (v.patientRef) vacByPatient[v.patientRef] = v; });
 
   // Enrich patients with their vaccination record
   const enriched = patients.map(p => ({
@@ -196,6 +206,11 @@ export default function VaccinationCoverage() {
         <button onClick={fetchAll}
           className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium transition-colors">
           <RefreshCw className="w-4 h-4" /> Refresh
+          {lastUpdated && (
+            <span className="text-slate-400 ml-1">
+              · {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </button>
       </header>
 
@@ -304,7 +319,7 @@ export default function VaccinationCoverage() {
                           <Badge label={p.patientStatus || '—'} color={p.patientStatus === 'Completed' ? 'green' : p.patientStatus === 'Ongoing' ? 'blue' : 'yellow'} />
                         </td>
                         <td className="px-4 py-3.5 min-w-[120px]">
-                          <DoseProgress schedule={p.vaccination?.schedule} />
+                          <DoseProgress schedule={p.vaccination} />
                         </td>
                         <td className="px-4 py-3.5">
                           <Badge
@@ -362,7 +377,7 @@ export default function VaccinationCoverage() {
                         </td>
                       </tr>
                     ) : incompleteCases.map((p, i) => {
-                      const schedule = p.vaccination?.schedule || {};
+                      const schedule = p.vaccination || {};
                       const doses = [schedule.day0, schedule.day3, schedule.day7, schedule.day14, schedule.day28];
                       const given   = doses.filter(Boolean).length;
                       const missing = 5 - given;

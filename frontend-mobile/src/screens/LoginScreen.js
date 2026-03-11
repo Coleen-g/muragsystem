@@ -65,7 +65,7 @@ export default function LoginScreen({ navigation }) {
     >
       <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
 
-      {/* Decorative circles — matching Dashboard header */}
+      {/* Decorative circles */}
       <View style={styles.circle1} />
       <View style={styles.circle2} />
       <View style={styles.circle3} />
@@ -161,7 +161,12 @@ export default function LoginScreen({ navigation }) {
               </Pressable>
             </View>
 
-            <TouchableOpacity style={styles.forgotRow}>
+            {/* ✅ Navigates to ForgotPassword screen */}
+            <TouchableOpacity
+              style={styles.forgotRow}
+              onPress={() => navigation.navigate('ForgotPassword')}
+              disabled={loading}
+            >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
@@ -212,7 +217,6 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#1565C0' },
 
-  /* Decorative circles — same as Dashboard & SplashScreen */
   circle1: {
     position: 'absolute', width: 320, height: 320, borderRadius: 160,
     backgroundColor: 'rgba(0,188,212,0.22)',
@@ -231,7 +235,6 @@ const styles = StyleSheet.create({
 
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 64, paddingBottom: 36 },
 
-  /* Brand */
   brandSection: { alignItems: 'center', marginBottom: 36 },
   glowRing: {
     position: 'absolute', top: -14,
@@ -263,18 +266,16 @@ const styles = StyleSheet.create({
   brandName: { fontSize: 36, fontWeight: '700', color: '#fff', letterSpacing: 0.4, marginBottom: 5 },
   brandSub:  { fontSize: 11, color: 'rgba(255,255,255,0.6)', letterSpacing: 3.5 },
 
-  /* Card */
   card: {
     width: '100%', borderRadius: 24, overflow: 'hidden', backgroundColor: '#fff',
     shadowColor: '#000', shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.22, shadowRadius: 28, elevation: 14,
   },
-  cardAccent: { height: 5, backgroundColor: '#1565C0', width: '100%' },
-  cardBody:   { padding: 28 },
+  cardAccent:   { height: 5, backgroundColor: '#1565C0', width: '100%' },
+  cardBody:     { padding: 28 },
   cardTitle:    { fontSize: 22, fontWeight: '700', color: '#1e293b', marginBottom: 4 },
   cardSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 28 },
 
-  /* Inputs */
   inputGroup: { marginBottom: 18 },
   label: { fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 8, letterSpacing: 0.3 },
   inputRow: {

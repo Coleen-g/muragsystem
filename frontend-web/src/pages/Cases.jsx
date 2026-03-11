@@ -863,6 +863,58 @@ const AddPanel = ({ onClose, onSaved, staffList }) => {
             </div>
           </div>
 
+          {/* Consent */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <FileCheck size={13} className="text-emerald-600" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Patient Consent</span>
+                <span className="ml-2 text-[10px] text-slate-400">Required · Both must be checked</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.consentTreatment}
+                  onChange={e => set('consentTreatment')(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600 mt-0.5 cursor-pointer shrink-0"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Consent to Treatment</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    The patient agrees to receive rabies post-exposure prophylaxis (PEP) and any necessary medical treatment.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.consentPrivacy}
+                  onChange={e => set('consentPrivacy')(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600 mt-0.5 cursor-pointer shrink-0"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Data Privacy Consent</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    The patient agrees to the collection and processing of their personal health data in accordance with the Data Privacy Act.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {form.consentTreatment && form.consentPrivacy && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                <p className="text-xs font-semibold text-emerald-700">Both consents confirmed — ready to save</p>
+              </div>
+            )}
+          </div>
+
           {/* Assignment */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">

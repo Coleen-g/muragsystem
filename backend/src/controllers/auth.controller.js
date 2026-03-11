@@ -27,7 +27,7 @@ exports.register = async (req, res) => {
         id:    user.id,
         name:  user.name,
         email: user.email,
-        role:  user.role, // ✅ include role
+        role:  user.role,
       },
     });
   } catch (error) {
@@ -65,11 +65,46 @@ exports.login = async (req, res) => {
         id:    user.id,
         name:  user.name,
         email: user.email,
-        role:  user.role, // ✅ include role
+        role:  user.role,
       },
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Forgot Password — generates a temporary password and saves it
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with that email.' });
+    }
+
+    // Generate 8-character temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+
+    // Assign plain — beforeUpdate hook will hash it automatically
+    user.password = tempPassword;
+    await user.save();
+
+    // ✅ In production: send via nodemailer instead of returning it
+    // For now return it so you can test
+    console.log(`Temp password for ${email}: ${tempPassword}`);
+
+    res.status(200).json({
+      message: 'Temporary password generated successfully.',
+      tempPassword, // ⚠️ Remove this in production — send via email instead
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
     res.status(500).json({ message: error.message });
   }
 };
