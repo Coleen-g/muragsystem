@@ -557,7 +557,7 @@ const AddPanel = ({ onClose, onSaved }) => {
   const [error, setError]               = useState(null);
 
   useEffect(() => {
-    apiClient.get('/cases/all', { params: { limit: 10000 } })
+    apiClient.get('/cases', { params: { limit: 10000 } })
       .then(res => setCases(res.data.cases || res.data || []))
       .catch(err => setError(err.response?.data?.message || 'Failed to load cases'))
       .finally(() => setLoadingCases(false));

@@ -21,6 +21,7 @@ import VaccinationCoverage from './pages/VaccinationCoverage';
 import Schedule from './pages/Schedule';
 import ReportAndAnalytics from './pages/ReportAndAnalytics';  
 import UserManagement from './pages/UserManagement';
+import ForgotPassword from './pages/ForgotPassword';
 import useAuthStore from './store/authStore';
 
 function PrivateRoute({ children }) {
@@ -35,12 +36,16 @@ export default function App() {
         <Route path="/" element={<Navigate to="/welcome" />} />
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
+
+        {/* ✅ Public route — no PrivateRoute or MainLayout */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
         <Route path="/dashboard" element={
-      <PrivateRoute>
-          <MainLayout>
+          <PrivateRoute>
+            <MainLayout>
               <Dashboard />
-          </MainLayout>
-       </PrivateRoute>
+            </MainLayout>
+          </PrivateRoute>
         } />
 
         {/* Cases */}
