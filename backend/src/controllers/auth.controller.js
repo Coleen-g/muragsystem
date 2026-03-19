@@ -1,5 +1,6 @@
-const User = require('../models/user.model');
-const jwt  = require('jsonwebtoken');
+const User        = require('../models/user.model');
+const jwt         = require('jsonwebtoken');
+const logActivity = require('../utils/logActivity'); // ✅ added
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -19,6 +20,14 @@ exports.register = async (req, res) => {
 
     const user  = await User.create({ name, email, password });
     const token = generateToken(user.id);
+
+    // ✅ Log
+    await logActivity({
+      action: 'CREATE', module: 'User',
+      description: `New user registered: ${name} (${email})`,
+      user: { id: user.id, name: user.name, role: user.role },
+      targetId: user.id, targetName: user.name, req,
+    });
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -58,6 +67,14 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user.id);
 
+    // ✅ Log
+    await logActivity({
+      action: 'LOGIN', module: 'Auth',
+      description: `${user.name} logged in`,
+      user: { id: user.id, name: user.name, role: user.role },
+      targetId: user.id, targetName: user.name, req,
+    });
+
     res.status(200).json({
       message: 'Login successful',
       token,
@@ -95,8 +112,15 @@ exports.forgotPassword = async (req, res) => {
     user.password = tempPassword;
     await user.save();
 
+    // ✅ Log
+    await logActivity({
+      action: 'PASSWORD_RESET', module: 'Auth',
+      description: `Password reset requested for ${user.name} (${email})`,
+      user: { id: user.id, name: user.name, role: user.role },
+      targetId: user.id, targetName: user.name, req,
+    });
+
     // ✅ In production: send via nodemailer instead of returning it
-    // For now return it so you can test
     console.log(`Temp password for ${email}: ${tempPassword}`);
 
     res.status(200).json({
@@ -108,3 +132,25 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch)
+      return res.status(401).json({ message: 'Current password is incorrect.' });
+
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: 'New password must be at least 6 characters.' });
+
+    user.password = newPassword; // beforeUpdate hook hashes it
+    await user.save();
+
+    res.json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

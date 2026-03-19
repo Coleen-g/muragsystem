@@ -1,48 +1,170 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, StatusBar,
+  TouchableOpacity, Alert, StatusBar, Modal,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import {
   User, Mail, Shield, LogOut, ChevronRight,
-  FileText, Syringe, Lock, Info,
+  FileText, Syringe, Lock, Info, Eye, EyeOff, X,
+  Moon, Sun,
 } from 'lucide-react-native';
 import useAuthStore from '../store/authStore';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
+import apiClient from '../api/client';
 
-const MenuItem = ({ icon: Icon, label, sub, color = '#1565C0', onPress, danger }) => (
+/* ── Menu Item ── */
+const MenuItem = ({ icon: Icon, label, sub, color = '#1565C0', onPress, danger, colors }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-    <View style={[styles.menuIcon, { backgroundColor: (danger ? '#fef2f2' : color + '18') }]}>
+    <View style={[styles.menuIcon, { backgroundColor: danger ? '#fef2f2' : color + '18' }]}>
       <Icon color={danger ? '#ef4444' : color} size={19} />
     </View>
     <View style={{ flex: 1 }}>
-      <Text style={[styles.menuLabel, danger && { color: '#ef4444' }]}>{label}</Text>
-      {sub && <Text style={styles.menuSub}>{sub}</Text>}
+      <Text style={[styles.menuLabel, { color: colors.text }, danger && { color: '#ef4444' }]}>{label}</Text>
+      {sub && <Text style={[styles.menuSub, { color: colors.subText }]}>{sub}</Text>}
     </View>
-    <ChevronRight color={danger ? '#fecaca' : '#cbd5e1'} size={16} />
+    <ChevronRight color={danger ? '#fecaca' : colors.border} size={16} />
   </TouchableOpacity>
 );
 
-export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuthStore();
+/* ── Change Password Modal ── */
+const ChangePasswordModal = ({ visible, onClose, colors }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword]         = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent]         = useState(false);
+  const [showNew, setShowNew]                 = useState(false);
+  const [showConfirm, setShowConfirm]         = useState(false);
+  const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState('');
 
-  const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log Out', style: 'destructive',
-        onPress: async () => { await logout(); navigation.replace('Login'); },
-      },
-    ]);
+  const reset = () => {
+    setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    setError(''); setShowCurrent(false); setShowNew(false); setShowConfirm(false);
+  };
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!currentPassword) return setError('Please enter your current password.');
+    if (!newPassword)     return setError('Please enter a new password.');
+    if (newPassword.length < 6) return setError('New password must be at least 6 characters.');
+    if (newPassword !== confirmPassword) return setError('Passwords do not match.');
+
+    setLoading(true);
+    try {
+      await apiClient.put('/auth/change-password', { currentPassword, newPassword });
+      reset();
+      onClose();
+      Alert.alert('Success', 'Your password has been updated successfully.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const PasswordField = ({ label, value, onChangeText, show, onToggle }) => (
+    <View style={styles.fieldWrap}>
+      <Text style={[styles.fieldLabel, { color: colors.subText }]}>{label}</Text>
+      <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.input }]}>
+        <TextInput
+          style={[styles.input, { color: colors.text }]}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!show}
+          placeholder="••••••••"
+          placeholderTextColor={colors.subText}
+          autoCapitalize="none"
+          editable={!loading}
+        />
+        <TouchableOpacity onPress={onToggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          {show ? <EyeOff color={colors.subText} size={18} /> : <Eye color={colors.subText} size={18} />}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+
+          <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Change Password</Text>
+              <Text style={[styles.modalSub, { color: colors.subText }]}>Enter your current and new password</Text>
+            </View>
+            <TouchableOpacity onPress={handleClose} style={[styles.closeBtn, { backgroundColor: colors.bg }]}>
+              <X color={colors.subText} size={18} />
+            </TouchableOpacity>
+          </View>
+
+          {!!error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          <PasswordField label="Current Password" value={currentPassword} onChangeText={setCurrentPassword} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />
+          <PasswordField label="New Password" value={newPassword} onChangeText={setNewPassword} show={showNew} onToggle={() => setShowNew(v => !v)} />
+          <PasswordField label="Confirm New Password" value={confirmPassword} onChangeText={setConfirmPassword} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />
+
+          {newPassword && confirmPassword && (
+            <Text style={[styles.matchText, { color: newPassword === confirmPassword ? '#16a34a' : '#dc2626' }]}>
+              {newPassword === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+            </Text>
+          )}
+
+          <TouchableOpacity
+            style={[styles.submitBtn, loading && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={loading}
+            activeOpacity={0.85}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Update Password</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleClose} style={styles.cancelBtn}>
+            <Text style={[styles.cancelText, { color: colors.subText }]}>Cancel</Text>
+          </TouchableOpacity>
+
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+/* ── Main Screen ── */
+export default function ProfileScreen({ navigation }) {
+  const { user, logout }       = useAuthStore();
+  const { dark, toggleTheme }  = useThemeStore();
+  const colors                 = useColors(dark);
+  const [changePassVisible, setChangePassVisible] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'P';
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
 
+      <ChangePasswordModal
+        visible={changePassVisible}
+        onClose={() => setChangePassVisible(false)}
+        colors={colors}
+      />
+
       {/* Blue header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.header }]}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={styles.avatar}>
@@ -59,60 +181,61 @@ export default function ProfileScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
 
         {/* Account info card */}
-        <View style={styles.infoCard}>
+        <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
           <View style={styles.infoRow}>
-            <User color="#1565C0" size={16} />
-            <Text style={styles.infoLabel}>Full Name</Text>
-            <Text style={styles.infoValue}>{user?.name || '—'}</Text>
+            <User color={colors.accent} size={16} />
+            <Text style={[styles.infoLabel, { color: colors.subText }]}>Full Name</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{user?.name || '—'}</Text>
           </View>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.infoRow}>
-            <Mail color="#1565C0" size={16} />
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{user?.email || '—'}</Text>
+            <Mail color={colors.accent} size={16} />
+            <Text style={[styles.infoLabel, { color: colors.subText }]}>Email</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{user?.email || '—'}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>QUICK ACCESS</Text>
-        <View style={styles.menuCard}>
+        <Text style={[styles.sectionLabel, { color: colors.subText }]}>QUICK ACCESS</Text>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
+          <MenuItem colors={colors} icon={FileText} label="My Cases" sub="View all registered exposure cases" onPress={() => navigation.navigate('Cases')} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <MenuItem colors={colors} icon={Syringe} label="Vaccination Schedule" sub="Check your PEP dose timeline" onPress={() => navigation.navigate('Schedule')} />
+        </View>
+
+        <Text style={[styles.sectionLabel, { color: colors.subText }]}>APPEARANCE</Text>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
           <MenuItem
-            icon={FileText} label="My Cases"
-            sub="View all registered exposure cases"
-            onPress={() => navigation.getParent()?.navigate('Cases')}
-          />
-          <View style={styles.divider} />
-          <MenuItem
-            icon={Syringe} label="Vaccination Schedule"
-            sub="Check your PEP dose timeline"
-            onPress={() => navigation.getParent()?.navigate('Schedule')}
+            colors={colors}
+            icon={dark ? Sun : Moon}
+            label={dark ? 'Light Mode' : 'Night Mode'}
+            sub={dark ? 'Switch to light theme' : 'Switch to dark blue theme'}
+            color={dark ? '#f59e0b' : '#6366f1'}
+            onPress={toggleTheme}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <View style={styles.menuCard}>
+        <Text style={[styles.sectionLabel, { color: colors.subText }]}>ACCOUNT</Text>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
+          <MenuItem colors={colors} icon={Lock} label="Change Password" sub="Update your account password" color="#8b5cf6" onPress={() => setChangePassVisible(true)} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <MenuItem
-            icon={Lock} label="Change Password"
-            sub="Update your account password"
-            color="#8b5cf6"
-            onPress={() => Alert.alert('Coming Soon', 'This feature will be available soon.')}
-          />
-          <View style={styles.divider} />
-          <MenuItem
-            icon={Info} label="About iRabiesCare"
+            colors={colors}
+            icon={Info}
+            label="About iRabiesCare"
             sub="Rabies Prevention Program v1.0"
             color="#64748b"
             onPress={() => Alert.alert('iRabiesCare', 'Rabies Prevention & Case Management System\nDepartment of Health\nVersion 1.0')}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>SESSION</Text>
-        <View style={styles.menuCard}>
-          <MenuItem icon={LogOut} label="Log Out" sub="Sign out of your account" danger onPress={handleLogout} />
+        <Text style={[styles.sectionLabel, { color: colors.subText }]}>SESSION</Text>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
+          <MenuItem colors={colors} icon={LogOut} label="Log Out" sub="Sign out of your account" danger onPress={handleLogout} />
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>iRabiesCare · Department of Health</Text>
-          <Text style={styles.footerVersion}>Rabies Prevention Program v1.0</Text>
+          <Text style={[styles.footerText, { color: colors.subText }]}>iRabiesCare · Department of Health</Text>
+          <Text style={[styles.footerVersion, { color: colors.border }]}>Rabies Prevention Program v1.0</Text>
         </View>
       </ScrollView>
     </View>
@@ -120,10 +243,9 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
+  root: { flex: 1 },
 
   header: {
-    backgroundColor: '#1565C0',
     alignItems: 'center',
     paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20,
     overflow: 'hidden',
@@ -147,34 +269,65 @@ const styles = StyleSheet.create({
   userEmail:  { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10 },
   roleChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
   },
   roleText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  body: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 32 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, marginBottom: 10, marginTop: 4 },
+  body:         { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 32 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 10, marginTop: 4 },
 
   infoCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
+    borderRadius: 14, padding: 16, marginBottom: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
   },
   infoRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  infoLabel: { fontSize: 12, color: '#64748b', flex: 1 },
-  infoValue: { fontSize: 13, fontWeight: '600', color: '#1e293b' },
+  infoLabel: { fontSize: 12, flex: 1 },
+  infoValue: { fontSize: 13, fontWeight: '600' },
 
   menuCard: {
-    backgroundColor: '#fff', borderRadius: 14, marginBottom: 18,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
-    overflow: 'hidden',
+    borderRadius: 14, marginBottom: 18,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 3, elevation: 2, overflow: 'hidden',
   },
-  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15 },
-  menuIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { fontSize: 14, fontWeight: '600', color: '#1e293b', marginBottom: 1 },
-  menuSub:   { fontSize: 11, color: '#94a3b8' },
-
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginLeft: 66 },
+  menuItem:  { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15 },
+  menuIcon:  { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  menuLabel: { fontSize: 14, fontWeight: '600', marginBottom: 1 },
+  menuSub:   { fontSize: 11 },
+  divider:   { height: 1, marginLeft: 66 },
 
   footer:        { alignItems: 'center', marginTop: 8 },
-  footerText:    { fontSize: 12, color: '#94a3b8', marginBottom: 3 },
-  footerVersion: { fontSize: 11, color: '#cbd5e1' },
+  footerText:    { fontSize: 12, marginBottom: 3 },
+  footerVersion: { fontSize: 11 },
+
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalSheet: {
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 24, paddingBottom: 36, paddingTop: 12,
+  },
+  modalHandle:  { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  modalHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
+  modalTitle:   { fontSize: 18, fontWeight: '700' },
+  modalSub:     { fontSize: 12, marginTop: 2 },
+  closeBtn:     { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+
+  errorBox:  { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 12, padding: 12, marginBottom: 16 },
+  errorText: { fontSize: 13, color: '#dc2626' },
+
+  fieldWrap:  { marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: '700', marginBottom: 8 },
+  inputRow:   { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 14 },
+  input:      { flex: 1, paddingVertical: 13, fontSize: 14 },
+  matchText:  { fontSize: 12, fontWeight: '600', marginBottom: 16, marginTop: -8 },
+
+  submitBtn: {
+    backgroundColor: '#1565C0', paddingVertical: 15,
+    borderRadius: 14, alignItems: 'center', marginTop: 4,
+    shadowColor: '#1565C0', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  cancelBtn:  { alignItems: 'center', paddingVertical: 14 },
+  cancelText: { fontSize: 14, fontWeight: '600' },
 });

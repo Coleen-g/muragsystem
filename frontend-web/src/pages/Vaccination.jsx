@@ -20,13 +20,6 @@ const DOSE_SCHEDULE = [
 const INITIAL_DOSE = { scheduledDate: '', administeredDate: '', status: 'pending' };
 const ITEMS_PER_PAGE = 10;
 
-const SLIDE_IN = `
-  @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to   { transform: translateX(0); opacity: 1; }
-  }
-`;
-
 /* ─────────────────────────────────────
    Shared UI atoms
 ───────────────────────────────────── */
@@ -78,11 +71,14 @@ const DoseCell = ({ administered, scheduled, missed }) => {
 const PanelShell = ({ width = 'max-w-2xl', children, onBackdropClick }) => (
   <>
     <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1000]" onClick={onBackdropClick} />
-    <div className={`fixed right-0 top-0 h-full w-full ${width} bg-white z-[1001] flex flex-col shadow-2xl overflow-hidden`}
-      style={{ animation: 'slideInRight 0.25s cubic-bezier(.4,0,.2,1)' }}>
-      {children}
+    <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+      <div className={`relative w-full ${width} bg-white flex flex-col shadow-2xl overflow-hidden rounded-2xl`}
+        style={{ maxHeight: '90vh', animation: 'fadeScaleIn 0.2s cubic-bezier(.4,0,.2,1)' }}
+        onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
     </div>
-    <style>{SLIDE_IN}</style>
+    <style>{`@keyframes fadeScaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}`}</style>
   </>
 );
 
@@ -509,16 +505,7 @@ const EditPanel = ({ vaccinationId, onClose, onSaved }) => {
         )}
       </div>
 
-      {!loading && !error && (
-        <div className="shrink-0 flex gap-3 px-6 py-4 border-t border-slate-100 bg-white">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition-all">
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      )}
+      
     </PanelShell>
   );
 };
@@ -696,14 +683,7 @@ const AddPanel = ({ onClose, onSaved }) => {
         </div>
       </div>
 
-      <div className="shrink-0 flex gap-3 px-6 py-4 border-t border-slate-100 bg-white">
-        <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-        <button onClick={handleSubmit} disabled={submitting}
-          className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-sm transition-all hover:-translate-y-0.5">
-          {submitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-          {submitting ? 'Saving...' : 'Save Record'}
-        </button>
-      </div>
+      
     </PanelShell>
   );
 };

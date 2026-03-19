@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import useThemeStore from '../store/themeStore';
+
 import {
   LayoutDashboard, ClipboardList, UserRound, Syringe, Dog,
   Package, Bell, BarChart2, TrendingUp, Users, Clock, Settings,
-  Shield, LogOut, Menu, RefreshCw,
+  Shield, LogOut, Menu, RefreshCw, Moon, Sun,
 } from 'lucide-react';
 
 const getNavSections = (role) => [
@@ -12,14 +14,12 @@ const getNavSections = (role) => [
     title: 'Main Menu',
     items: [
       { icon: LayoutDashboard, label: 'Dashboard',           path: '/dashboard' },
-      { icon: ClipboardList,   label: 'Case Reporting',      path: '/cases' },
-      { icon: UserRound,       label: 'Patient Tracking',    path: '/patients' },
+      { icon: ClipboardList,   label: 'Case Records',      path: '/cases' },
+      { icon: UserRound,       label: 'Patient Case',    path: '/patients' },
       { icon: Syringe,         label: 'Vaccination Records', path: '/vaccinations' },
       { icon: Dog,             label: 'Animal Information',  path: '/animals' },
     ],
   },
-
-  // ✅ Management section — admin only
   ...(role === 'admin' ? [{
     title: 'Management',
     items: [
@@ -29,8 +29,6 @@ const getNavSections = (role) => [
       { icon: TrendingUp, label: 'Reports & Analytics', path: '/reports' },
     ],
   }] : []),
-
-  // ✅ System section — admin only
   ...(role === 'admin' ? [{
     title: 'System',
     items: [
@@ -42,6 +40,12 @@ const getNavSections = (role) => [
 ];
 
 const ROLE_LABEL = {
+  admin: { label: 'Administrator', color: 'text-purple-400', bg: 'bg-purple-900/40' },
+  staff: { label: 'Health Staff',  color: 'text-blue-400',   bg: 'bg-blue-900/40'   },
+  user:  { label: 'Patient',       color: 'text-slate-400',  bg: 'bg-slate-700/40'  },
+};
+
+const ROLE_LABEL_LIGHT = {
   admin: { label: 'Administrator', color: 'text-purple-600', bg: 'bg-purple-100' },
   staff: { label: 'Health Staff',  color: 'text-blue-600',   bg: 'bg-blue-100'   },
   user:  { label: 'Patient',       color: 'text-slate-600',  bg: 'bg-slate-100'  },
@@ -49,8 +53,8 @@ const ROLE_LABEL = {
 
 const getActiveFromPath = (path) => {
   if (path.startsWith('/dashboard'))    return 'Dashboard';
-  if (path.startsWith('/cases'))        return 'Case Reporting';
-  if (path.startsWith('/patients'))     return 'Patient Tracking';
+  if (path.startsWith('/cases'))        return 'Case Records';
+  if (path.startsWith('/patients'))     return 'Patient Case';
   if (path.startsWith('/vaccinations')) return 'Vaccination Records';
   if (path.startsWith('/animals'))      return 'Animal Information';
   if (path.startsWith('/inventory'))    return 'Vaccine Inventory';
@@ -67,7 +71,7 @@ const getHeaderInfo = (path) => {
   const map = {
     '/dashboard':    { title: 'Dashboard Overview',    sub: '' },
     '/cases':        { title: 'Case Records',           sub: 'All registered rabies exposure cases' },
-    '/patients':     { title: 'Patient Case Tracking',  sub: 'Track patient progress and PEP schedules' },
+    '/patients':     { title: 'Patient Case',  sub: 'Track patient progress and PEP schedules' },
     '/vaccinations': { title: 'Vaccination Records',    sub: 'WHO PEP schedule tracking and vaccine administration' },
     '/animals':      { title: 'Animal Information',     sub: 'Animal observation tracking and outcome logging' },
     '/inventory':    { title: 'Vaccine Inventory',      sub: 'Manage vaccine stock and supply levels' },
@@ -86,25 +90,26 @@ const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
 export default function MainLayout({ children }) {
-  const { user, logout } = useAuthStore();
-  const navigate         = useNavigate();
-  const location         = useLocation();
+  const { user, logout }          = useAuthStore();
+  const { dark, setDark, toggle } = useThemeStore(); // ✅ shared store
+  const navigate                  = useNavigate();
+  const location                  = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav]     = useState(getActiveFromPath(location.pathname));
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [refreshing, setRefreshing]   = useState(false);
 
-  // ✅ Build nav based on role
   const navSections = getNavSections(user?.role);
-  const roleInfo    = ROLE_LABEL[user?.role] || ROLE_LABEL.staff;
+  const roleInfo    = dark
+    ? (ROLE_LABEL[user?.role]       || ROLE_LABEL.staff)
+    : (ROLE_LABEL_LIGHT[user?.role] || ROLE_LABEL_LIGHT.staff);
 
   useEffect(() => {
     setActiveNav(getActiveFromPath(location.pathname));
     setLastRefresh(new Date());
   }, [location.pathname]);
 
-  // ✅ Redirect staff away from admin-only pages
   useEffect(() => {
     if (user?.role === 'staff') {
       const adminOnlyPaths = ['/users', '/inventory', '/schedule', '/coverage', '/reports', '/activity', '/settings'];
@@ -118,27 +123,42 @@ export default function MainLayout({ children }) {
   const avatarLetter   = user?.name?.charAt(0)?.toUpperCase() || 'A';
   const { title, sub } = getHeaderInfo(location.pathname);
 
+  const d = {
+    rootBg:      dark ? 'bg-[#070d1a]'                      : 'bg-slate-50',
+    sidebarBg:   dark ? 'bg-[#0d1b3e] border-[#1e3a6e]'     : 'bg-white border-slate-200',
+    headerBg:    dark ? 'bg-[#0d1b3e]/95 border-[#1e3a6e]'  : 'bg-white/95 border-slate-200',
+    mainBg:      dark ? 'bg-[#070d1a]'                      : 'bg-slate-50',
+    titleText:   dark ? 'text-slate-100'                     : 'text-slate-800',
+    subText:     dark ? 'text-slate-400'                     : 'text-slate-400',
+    navSection:  dark ? 'text-slate-500'                     : 'text-slate-400',
+    navInactive: dark ? 'text-slate-400 hover:bg-[#0f1f45] hover:text-slate-100 hover:border-blue-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300',
+    navActive:   dark ? 'bg-[#0f1f45] text-blue-400 border-blue-500 font-semibold' : 'bg-blue-50 text-blue-600 border-blue-600 font-semibold',
+    userCard:    dark ? 'bg-[#0f1f45] border-[#1e3a6e]'     : 'bg-slate-50 border-slate-200',
+    userName:    dark ? 'text-slate-100'                     : 'text-slate-800',
+    liveChip:    dark ? 'bg-[#0f1f45] border-[#1e3a6e] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500',
+    bellBtn:     dark ? 'bg-[#0f1f45] border-[#1e3a6e] text-slate-400 hover:text-blue-400 hover:border-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300',
+    themeBtn:    dark ? 'bg-[#0f1f45] border-[#1e3a6e] text-blue-400 hover:border-blue-500' : 'bg-slate-50 border-slate-200 text-amber-500 hover:border-amber-300',
+  };
+
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-700 text-sm">
+    <div id="app-layout" className={`flex min-h-screen text-sm transition-colors duration-300 ${d.rootBg}`}>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[999] lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/60 z-[999] lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ── Sidebar ── */}
-      <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 flex flex-col z-[1000] transition-transform duration-300
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`fixed top-0 left-0 h-full w-64 border-r flex flex-col z-[1000] transition-all duration-300 ${d.sidebarBg} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
 
         {/* Logo */}
         <div className="px-5 py-6 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
+          style={{ background: dark ? 'linear-gradient(135deg, #0d1b3e 0%, #0f2354 100%)' : 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${dark ? 'bg-blue-900/40 border-blue-700/50' : 'bg-white/20 border-white/30'}`}>
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div>
             <h2 className="text-white font-bold text-lg leading-tight">Rabies Care</h2>
-            {/* ✅ Dynamic role label */}
-            <p className="text-blue-200 text-xs mt-0.5">{roleInfo.label}</p>
+            <p className={`text-xs mt-0.5 ${dark ? 'text-blue-400' : 'text-blue-200'}`}>{roleInfo.label}</p>
           </div>
         </div>
 
@@ -146,7 +166,7 @@ export default function MainLayout({ children }) {
         <nav className="flex-1 py-5 overflow-y-auto">
           {navSections.map((section) => (
             <div key={section.title} className="mb-6">
-              <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest px-5 mb-2">
+              <p className={`text-[10px] font-bold uppercase tracking-widest px-5 mb-2 ${d.navSection}`}>
                 {section.title}
               </p>
               {section.items.map((item) => {
@@ -155,10 +175,7 @@ export default function MainLayout({ children }) {
                 return (
                   <button key={item.label}
                     onClick={() => { setActiveNav(item.label); navigate(item.path); setSidebarOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-all duration-150 border-l-[3px]
-                      ${active
-                        ? 'bg-blue-50 text-blue-600 border-blue-600 font-semibold'
-                        : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300'}`}>
+                    className={`w-full flex items-center gap-3 px-5 py-2.5 text-left transition-all duration-150 border-l-[3px] ${active ? d.navActive : `border-transparent ${d.navInactive}`}`}>
                     <Icon size={16} className="flex-shrink-0" />
                     <span className="text-sm">{item.label}</span>
                   </button>
@@ -169,15 +186,14 @@ export default function MainLayout({ children }) {
         </nav>
 
         {/* User card */}
-        <div className="p-4 border-t border-slate-100">
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+        <div className={`p-4 border-t transition-colors duration-300 ${dark ? 'border-[#1e3a6e]' : 'border-slate-100'}`}>
+          <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors duration-300 ${d.userCard}`}>
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>
+              style={{ background: dark ? 'linear-gradient(135deg, #1e3a6e, #2563eb)' : 'linear-gradient(135deg, #2563eb, #3b82f6)' }}>
               {avatarLetter}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-800 text-sm truncate">{user?.name || 'User'}</p>
-              {/* ✅ Role badge */}
+              <p className={`font-semibold text-sm truncate transition-colors duration-300 ${d.userName}`}>{user?.name || 'User'}</p>
               <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${roleInfo.bg} ${roleInfo.color}`}>
                 {roleInfo.label}
               </span>
@@ -187,40 +203,52 @@ export default function MainLayout({ children }) {
       </aside>
 
       {/* ── Main ── */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className={`flex-1 lg:ml-64 flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-colors duration-300 ${d.mainBg}`}>
 
         {/* ── Top Header ── */}
-        <header className="sticky top-0 z-[100] bg-white/95 backdrop-blur border-b border-slate-200 px-6 h-[70px] flex items-center justify-between">
+        <header className={`sticky top-0 z-[100] backdrop-blur border-b px-6 h-[70px] flex items-center justify-between transition-colors duration-300 ${d.headerBg}`}>
 
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600"
+              className={`lg:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${dark ? 'bg-[#0f1f45] text-slate-300' : 'bg-slate-100 text-slate-600'}`}
               onClick={() => setSidebarOpen(true)}>
               <Menu size={18} />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-slate-800">{title}</h1>
-              {sub && <p className="text-[11px] text-slate-400 hidden sm:block">{sub}</p>}
+              <h1 className={`text-lg font-bold transition-colors duration-300 ${d.titleText}`}>{title}</h1>
+              {sub && <p className={`text-[11px] hidden sm:block transition-colors duration-300 ${d.subText}`}>{sub}</p>}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
 
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-500">
+            {/* Live chip */}
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 border rounded-lg text-[11px] transition-colors duration-300 ${d.liveChip}`}>
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live · {fmtTime(lastRefresh)}</span>
               <button
                 onClick={() => { setRefreshing(true); setTimeout(() => { setLastRefresh(new Date()); setRefreshing(false); }, 600); }}
                 disabled={refreshing}
-                className="ml-1 text-blue-500 hover:text-blue-700 transition-colors disabled:opacity-50">
+                className="ml-1 text-blue-500 hover:text-blue-400 transition-colors disabled:opacity-50">
                 <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
               </button>
             </div>
 
-            <button className="relative w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors">
+            {/* ✅ Theme toggle — calls shared toggle() */}
+            <button
+              onClick={toggle}
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all hover:-translate-y-0.5 ${d.themeBtn}`}
+              title={dark ? 'Switch to Light Mode' : 'Switch to Night Mode'}
+            >
+              {dark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+
+            {/* Bell */}
+            <button className={`relative w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${d.bellBtn}`}>
               <Bell size={15} />
             </button>
 
+            {/* Logout */}
             <button onClick={handleLogout}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-xs transition-all hover:-translate-y-0.5 shadow-sm">
               <LogOut size={13} />
@@ -230,7 +258,7 @@ export default function MainLayout({ children }) {
         </header>
 
         {/* ── Page content ── */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8 w-full transition-colors duration-300">
           {children}
         </main>
       </div>

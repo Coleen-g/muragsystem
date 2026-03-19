@@ -1,5 +1,6 @@
 const { Op, fn, col, literal } = require('sequelize');
-const Case = require('../models/case.model');
+const Case        = require('../models/case.model');
+const logActivity = require('../utils/logActivity'); // ✅ added
 
 // Staff/Admin: Get cases based on role
 exports.getAllCases = async (req, res) => {
@@ -10,7 +11,6 @@ exports.getAllCases = async (req, res) => {
       ? {}
       : { assignedTo: req.user.id };
 
-    // ✅ Unassigned filter — admin only
     if (unassigned === 'true') {
       where.assignedTo = null;
     }
@@ -76,11 +76,30 @@ exports.createCase = async (req, res) => {
       ...caseFields
     } = req.body;
 
-    const newCase = await Case.create({
+    const sanitized = {
       ...caseFields,
-      createdBy: req.user.id,
-      // ✅ If staff creates a case, auto-assign to themselves
-      assignedTo: caseFields.assignedTo || (req.user.role === 'staff' ? req.user.id : null),
+      email:            caseFields.email            || null,
+      bodyPartAffected: caseFields.bodyPartAffected  || null,
+      animalVaccinated: caseFields.animalVaccinated  || null,
+      woundBleeding:    caseFields.woundBleeding     || null,
+      woundWashed:      caseFields.woundWashed       || null,
+      assignedTo:       caseFields.assignedTo        ? Number(caseFields.assignedTo) : null,
+    };
+
+    const newCase = await Case.create({
+      ...sanitized,
+      createdBy:  req.user.id,
+      assignedTo: sanitized.assignedTo || (req.user.role === 'staff' ? req.user.id : null),
+    });
+
+    // ✅ Log case creation
+    await logActivity({
+      action: 'CREATE', module: 'Case',
+      description: `New case registered for ${caseFields.fullName}`,
+      user: req.user,
+      targetId:   newCase.id,
+      targetName: `Case #${newCase.caseId} - ${caseFields.fullName}`,
+      req,
     });
 
     if (createAccount && accountEmail && accountPassword) {
@@ -104,6 +123,16 @@ exports.createCase = async (req, res) => {
 
       await newCase.update({ patientUserId: newUser.id });
 
+      // ✅ Log mobile account creation
+      await logActivity({
+        action: 'CREATE', module: 'User',
+        description: `Mobile account created for walk-in patient: ${caseFields.fullName}`,
+        user: req.user,
+        targetId:   newUser.id,
+        targetName: caseFields.fullName,
+        req,
+      });
+
       return res.status(201).json({
         message:        'Case registered and mobile account created successfully',
         case:           newCase,
@@ -116,8 +145,10 @@ exports.createCase = async (req, res) => {
       case:           newCase,
       accountCreated: false,
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('createCase error:', error.errors?.[0]?.message || error.message);
+    res.status(500).json({ message: error.errors?.[0]?.message || error.message });
   }
 };
 
@@ -127,7 +158,59 @@ exports.updateCase = async (req, res) => {
     const caseItem = await Case.findByPk(req.params.id);
     if (!caseItem) return res.status(404).json({ message: 'Case not found' });
 
-    await caseItem.update(req.body);
+    const oldStatus   = caseItem.status;
+    const oldAssigned = caseItem.assignedTo;
+
+    // ✅ Sanitize empty strings to null for ENUM fields
+    const sanitized = {
+      ...req.body,
+      email:            req.body.email            || null,
+      bodyPartAffected: req.body.bodyPartAffected  || null,
+      animalVaccinated: req.body.animalVaccinated  || null,
+      woundBleeding:    req.body.woundBleeding     || null,
+      woundWashed:      req.body.woundWashed       || null,
+      numberOfWounds:   req.body.numberOfWounds !== '' ? Number(req.body.numberOfWounds) : null, 
+      assignedTo:       req.body.assignedTo        ? Number(req.body.assignedTo) : null,
+    };
+
+    await caseItem.update(sanitized); // ✅ sanitized instead of req.body
+
+    // ✅ Log status change
+    if (sanitized.status && sanitized.status !== oldStatus) {
+      await logActivity({
+        action: 'STATUS_CHANGE', module: 'Case',
+        description: `Case #${caseItem.caseId} status changed from ${oldStatus} to ${sanitized.status}`,
+        user: req.user,
+        targetId:   caseItem.id,
+        targetName: `Case #${caseItem.caseId} - ${caseItem.fullName}`,
+        req,
+      });
+    }
+
+    // ✅ Log assignment change
+    if (sanitized.assignedTo !== undefined && sanitized.assignedTo !== oldAssigned) {
+      await logActivity({
+        action: 'ASSIGN', module: 'Case',
+        description: `Case #${caseItem.caseId} reassigned to staff ID ${sanitized.assignedTo}`,
+        user: req.user,
+        targetId:   caseItem.id,
+        targetName: `Case #${caseItem.caseId} - ${caseItem.fullName}`,
+        req,
+      });
+    }
+
+    // ✅ Log general update
+    if (!sanitized.status && sanitized.assignedTo === undefined) {
+      await logActivity({
+        action: 'UPDATE', module: 'Case',
+        description: `Case #${caseItem.caseId} details updated`,
+        user: req.user,
+        targetId:   caseItem.id,
+        targetName: `Case #${caseItem.caseId} - ${caseItem.fullName}`,
+        req,
+      });
+    }
+
     res.status(200).json({
       message: 'Case updated successfully',
       case: caseItem,
@@ -142,6 +225,16 @@ exports.deleteCase = async (req, res) => {
   try {
     const caseItem = await Case.findByPk(req.params.id);
     if (!caseItem) return res.status(404).json({ message: 'Case not found' });
+
+    // ✅ Log before destroy so we still have the data
+    await logActivity({
+      action: 'DELETE', module: 'Case',
+      description: `Case #${caseItem.caseId} deleted (${caseItem.fullName})`,
+      user: req.user,
+      targetId:   caseItem.id,
+      targetName: `Case #${caseItem.caseId} - ${caseItem.fullName}`,
+      req,
+    });
 
     await caseItem.destroy();
     res.status(200).json({ message: 'Case deleted successfully' });

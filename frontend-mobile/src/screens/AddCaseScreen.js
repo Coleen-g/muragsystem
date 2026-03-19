@@ -8,6 +8,8 @@ import {
 import { ChevronLeft, ChevronRight, Check, User, AlertTriangle, Cat, Bandage, FileCheck, ChevronDown } from 'lucide-react-native';
 import apiClient from '../api/client';
 import { BOHOL_DATA, MUNICIPALITIES } from '../../constants/bohol';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
 
 const STEPS = [
   { label: 'Personal', icon: User },
@@ -122,6 +124,9 @@ const PickerButton = ({ label, value, placeholder, onPress, disabled }) => (
 );
 
 export default function AddCaseScreen({ navigation }) {
+  const { dark } = useThemeStore();
+  const colors = useColors(dark);
+
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showMunicipalityPicker, setShowMunicipalityPicker] = useState(false);
@@ -323,7 +328,7 @@ export default function AddCaseScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
 
       {/* Header — matches Dashboard blue header */}

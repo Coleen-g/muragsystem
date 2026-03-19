@@ -11,6 +11,8 @@ import {
   Stethoscope, MoreVertical, TrendingUp,
 } from 'lucide-react-native';
 import useAuthStore from '../store/authStore';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
 import apiClient from '../api/client';
 
 const { width: SW } = Dimensions.get('window');
@@ -148,6 +150,9 @@ const FAB = ({ onPress }) => {
    MAIN
 ══════════════════════════════ */
 export default function DashboardScreen({ navigation }) {
+  const { dark } = useThemeStore();
+  const colors = useColors(dark);
+
   const { user, logout } = useAuthStore();
   const [myCases,        setMyCases]        = useState([]);
   const [myVaccinations, setMyVaccinations] = useState([]);
@@ -183,8 +188,8 @@ export default function DashboardScreen({ navigation }) {
   const initials = (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
+    <View style={[s.root, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* ════════════════════════════
           HEADER — blue→cyan gradient

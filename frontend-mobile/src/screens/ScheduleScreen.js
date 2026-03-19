@@ -6,6 +6,8 @@ import {
 import {
   Syringe, Calendar, CheckCircle, Clock, AlertCircle, Circle,
 } from 'lucide-react-native';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
 import apiClient from '../api/client';
 
 const DOSE_KEYS = [
@@ -33,6 +35,9 @@ const formatDate = (date) =>
   }) : null;
 
 export default function ScheduleScreen() {
+  const { dark } = useThemeStore();
+  const colors = useColors(dark);
+
   const [vaccinations, setVaccinations] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);

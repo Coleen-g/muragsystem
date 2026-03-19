@@ -6,6 +6,8 @@ import {
 } from 'react-native';
 import { FileText, Search, ChevronRight, ClipboardList } from 'lucide-react-native';
 import apiClient from '../api/client';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
 
 const StatusBadge = ({ status }) => {
   const config = {
@@ -26,6 +28,9 @@ const formatDate = (date) =>
   date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—';
 
 export default function CasesScreen({ navigation }) {
+  const { dark } = useThemeStore();
+  const colors = useColors(dark);
+
   const [cases, setCases]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,8 +57,8 @@ export default function CasesScreen({ navigation }) {
   const filters = ['All', 'Pending', 'Ongoing', 'Completed'];
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* Header */}
       <View style={styles.header}>

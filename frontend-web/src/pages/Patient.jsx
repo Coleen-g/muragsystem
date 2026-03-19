@@ -47,11 +47,14 @@ const OutcomeBadge = ({ outcome }) => (
 const PanelShell = ({ width = 'max-w-xl', children, onClose }) => (
   <>
     <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1000]" onClick={onClose} />
-    <div className={`fixed right-0 top-0 h-full w-full ${width} bg-white z-[1001] flex flex-col shadow-2xl overflow-hidden`}
-      style={{ animation: 'slideInRight .25s cubic-bezier(.4,0,.2,1)' }}>
-      {children}
+    <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+      <div className={`relative w-full ${width} bg-white flex flex-col shadow-2xl overflow-hidden rounded-2xl`}
+        style={{ maxHeight: '90vh', animation: 'fadeScaleIn 0.2s cubic-bezier(.4,0,.2,1)' }}
+        onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
     </div>
-    <style>{SLIDE_IN}</style>
+    <style>{`@keyframes fadeScaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}`}</style>
   </>
 );
 

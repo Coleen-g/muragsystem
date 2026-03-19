@@ -8,6 +8,8 @@ import {
   Syringe, CheckCircle, Circle, AlertCircle,
 } from 'lucide-react-native';
 import apiClient from '../api/client';
+import useThemeStore from '../store/themeStore';
+import { useColors } from '../theme/colors';
 
 const StatusPill = ({ status }) => {
   const map = {
@@ -128,6 +130,9 @@ const DOSE_KEYS = [
 ];
 
 export default function CaseDetail({ navigation, route }) {
+  const { dark } = useThemeStore();
+  const colors = useColors(dark);
+
   const { caseId } = route.params;
   const [caseData,        setCaseData]        = useState(null);
   const [patientData,     setPatientData]     = useState(null);
@@ -186,8 +191,8 @@ export default function CaseDetail({ navigation, route }) {
   );
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* Blue Header */}
       <View style={styles.headerWrap}>

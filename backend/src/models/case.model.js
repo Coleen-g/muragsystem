@@ -48,9 +48,10 @@ const Case = sequelize.define('Case', {
     allowNull: false 
   },
   bodyPartAffected: { 
-    type: DataTypes.ENUM('Hand', 'Leg', 'Arm', 'Face', 'Others'), 
-    defaultValue: null 
-  },
+  type: DataTypes.ENUM('Hand', 'Leg', 'Arm', 'Face', 'Others'), 
+  allowNull: true,   // ✅
+  defaultValue: null 
+},
 
   // Incident Logging
   dateOfExposure: { type: DataTypes.DATE,   allowNull: false },
@@ -63,8 +64,8 @@ const Case = sequelize.define('Case', {
   animalVaccinated: { type: DataTypes.ENUM('Yes', 'No', 'Unknown'),        defaultValue: 'Unknown' },
 
   // Wound Info
-  woundBleeding:  { type: DataTypes.ENUM('Yes', 'No', 'Unknown'), defaultValue: null },
-  woundWashed:    { type: DataTypes.ENUM('Yes', 'No', 'Unknown'), defaultValue: null },
+  woundBleeding: { type: DataTypes.ENUM('Yes', 'No', 'Unknown'), allowNull: true, defaultValue: null },
+woundWashed:   { type: DataTypes.ENUM('Yes', 'No', 'Unknown'), allowNull: true, defaultValue: null },
   numberOfWounds: { type: DataTypes.INTEGER, defaultValue: null },
 
   // Document
@@ -79,8 +80,8 @@ const Case = sequelize.define('Case', {
 
 // Auto-generate Case ID before creating
 Case.beforeCreate(async (caseRecord) => {
-  const count = await Case.count();
-  caseRecord.caseId = String(count + 1).padStart(4, '0');
+  const max = await Case.max('id') || 0;
+  caseRecord.caseId = String(max + 1).padStart(4, '0');
 });
 
 Case.belongsTo(User, { foreignKey: 'createdBy',     as: 'creator' });

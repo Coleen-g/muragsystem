@@ -12,9 +12,11 @@ const useAuthStore = create((set) => ({
   },
 
   logout: async () => {
+    console.log('logout called');
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
     set({ user: null, token: null });
+    console.log('logout done');
   },
 
   loadAuth: async () => {

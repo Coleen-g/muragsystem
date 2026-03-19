@@ -22,7 +22,10 @@ import Schedule from './pages/Schedule';
 import ReportAndAnalytics from './pages/ReportAndAnalytics';  
 import UserManagement from './pages/UserManagement';
 import ForgotPassword from './pages/ForgotPassword';
+import Settings from './pages/Settings';
+import ActivityLogs from './pages/Activitylogs';
 import useAuthStore from './store/authStore';
+
 
 function PrivateRoute({ children }) {
   const { token } = useAuthStore();
@@ -117,7 +120,16 @@ export default function App() {
         <Route path="/users" element={
           <PrivateRoute><MainLayout><UserManagement /></MainLayout></PrivateRoute>
         } />
-      </Routes>
+
+        <Route path="/settings" element={
+          <PrivateRoute><MainLayout><Settings /></MainLayout></PrivateRoute>
+         } />
+
+        <Route path="/activity" element={
+          <PrivateRoute><MainLayout><ActivityLogs /></MainLayout></PrivateRoute>
+         } /> 
+        </Routes>
+          
     </BrowserRouter>
   );
 }

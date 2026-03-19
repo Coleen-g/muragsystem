@@ -7,6 +7,8 @@ import DashboardScreen from '../screens/DashboardScreen';
 import ScheduleScreen  from '../screens/ScheduleScreen';
 import CasesScreen     from '../screens/CasesScreen';
 import ProfileScreen   from '../screens/ProfileScreen';
+import useThemeStore from '../store/themeStore'; // ← add
+import { useColors } from '../theme/colors';     // ← add
 
 const Tab = createBottomTabNavigator();
 
@@ -18,12 +20,17 @@ const TabIcon = ({ icon: Icon, label, focused }) => (
 );
 
 export default function BottomTabNavigator() {
+  const { dark } = useThemeStore(); // ← add
+  const colors   = useColors(dark); // ← add
+  
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: tabStyles.bar,
+         backgroundColor: colors.tabBar,     // ← dynamic
+          borderTopColor:  colors.border,
       }}
     >
       <Tab.Screen
