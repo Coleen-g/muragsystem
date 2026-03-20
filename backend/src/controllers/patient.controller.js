@@ -1,4 +1,5 @@
 const Patient = require('../models/patient.model');
+const logActivity = require('../utils/logActivity'); 
 const Case    = require('../models/case.model');
 
 // Get all patients — scoped by role
@@ -131,3 +132,26 @@ exports.getMyPatients = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+await logActivity({
+  action: 'CREATE', module: 'Patient',
+  description: `Patient record created for ${linkedCase.fullName}`,
+  user: req.user, targetId: patient._id,
+  targetName: linkedCase.fullName, req,
+});
+
+// In updatePatient — add after patient.save():
+await logActivity({
+  action: 'UPDATE', module: 'Patient',
+  description: `Patient record updated for ${patient.fullName}`,
+  user: req.user, targetId: patient._id,
+  targetName: patient.fullName, req,
+});
+
+// In deletePatient — add before patient.deleteOne():
+await logActivity({
+  action: 'DELETE', module: 'Patient',
+  description: `Patient record deleted for ${patient.fullName}`,
+  user: req.user, targetId: patient._id,
+  targetName: patient.fullName, req,
+});

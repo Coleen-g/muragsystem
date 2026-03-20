@@ -1,4 +1,5 @@
 const Animal = require('../models/animal.model');
+const logActivity = require('../utils/logActivity');
 const Case   = require('../models/case.model');
 
 exports.getAllAnimals = async (req, res) => {
@@ -137,3 +138,26 @@ exports.getAnimalStats = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+await logActivity({
+  action: 'CREATE', module: 'Animal',
+  description: `Animal record created for Case #${linkedCase.caseId}`,
+  user: req.user, targetId: newAnimal._id,
+  targetName: `${animalSpecies} - ${linkedCase.fullName}`, req,
+});
+
+// In updateAnimal — add after animal.save():
+await logActivity({
+  action: 'UPDATE', module: 'Animal',
+  description: `Animal record updated`,
+  user: req.user, targetId: animal._id,
+  targetName: animal.animalSpecies, req,
+});
+
+// In deleteAnimal — add before animal.deleteOne():
+await logActivity({
+  action: 'DELETE', module: 'Animal',
+  description: `Animal record deleted`,
+  user: req.user, targetId: animal._id,
+  targetName: animal.animalSpecies, req,
+});
