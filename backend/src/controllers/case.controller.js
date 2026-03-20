@@ -1,5 +1,6 @@
 const Case                 = require('../models/case.model');
 const logActivity          = require('../utils/logActivity');
+const { cloudinary }       = require('../config/cloudinary');
 const sendPushNotification = require('../utils/sendPushNotification');
 const User                 = require('../models/user.model');
 
@@ -66,10 +67,12 @@ exports.getCaseById = async (req, res) => {
   }
 };
 
-// Create case — supports optional walk-in mobile account creation
+// Create case — supports optional walk-in mobile account creation + Cloudinary upload
 exports.createCase = async (req, res) => {
   try {
     const { createAccount, accountEmail, accountPassword, ...caseFields } = req.body;
+
+    const documentUrl = req.file?.path || req.file?.secure_url || null;
 
     const sanitized = {
       ...caseFields,
@@ -79,6 +82,7 @@ exports.createCase = async (req, res) => {
       woundBleeding:    caseFields.woundBleeding    || null,
       woundWashed:      caseFields.woundWashed      || null,
       assignedTo:       caseFields.assignedTo       || null,
+      documentUrl,
     };
 
     const newCase = await Case.create({
@@ -133,7 +137,7 @@ exports.createCase = async (req, res) => {
   }
 };
 
-// Update case
+// Update case — also handles new document upload
 exports.updateCase = async (req, res) => {
   try {
     const caseItem = await Case.findById(req.params.id);
@@ -141,6 +145,16 @@ exports.updateCase = async (req, res) => {
 
     const oldStatus   = caseItem.status;
     const oldAssigned = caseItem.assignedTo?.toString();
+
+    // If new file uploaded, delete old one from Cloudinary first
+    if (req.file && caseItem.documentUrl) {
+      try {
+        const publicId = caseItem.documentUrl.split('/').slice(-2).join('/').split('.')[0];
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+      } catch (e) {
+        console.error('Cloudinary delete error:', e.message);
+      }
+    }
 
     const sanitized = {
       ...req.body,
@@ -151,6 +165,7 @@ exports.updateCase = async (req, res) => {
       woundWashed:      req.body.woundWashed      || null,
       numberOfWounds:   req.body.numberOfWounds !== '' ? Number(req.body.numberOfWounds) : null,
       assignedTo:       req.body.assignedTo       || null,
+      ...(req.file && { documentUrl: req.file?.path || req.file?.secure_url }),
     };
 
     Object.assign(caseItem, sanitized);
@@ -177,10 +192,14 @@ exports.updateCase = async (req, res) => {
               message,
               { type: 'case_status_update', caseId: caseItem._id.toString(), status: sanitized.status }
             );
+            console.log(`[Push] Notified ${patient.name} — status: ${sanitized.status}`);
+          } else {
+            console.log(`[Push] Patient has no pushToken — skipping notification`);
           }
+        } else {
+          console.log(`[Push] No patientUserId on case — skipping notification`);
         }
       } catch (notifErr) {
-        // Never block the main response if notification fails
         console.error('[Push] Failed to notify patient:', notifErr.message);
       }
       // ──────────────────────────────────────────────────────────────────────
@@ -210,11 +229,20 @@ exports.updateCase = async (req, res) => {
   }
 };
 
-// Delete case
+// Delete case — also deletes Cloudinary document
 exports.deleteCase = async (req, res) => {
   try {
     const caseItem = await Case.findById(req.params.id);
     if (!caseItem) return res.status(404).json({ message: 'Case not found' });
+
+    if (caseItem.documentUrl) {
+      try {
+        const publicId = caseItem.documentUrl.split('/').slice(-2).join('/').split('.')[0];
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+      } catch (e) {
+        console.error('Cloudinary delete error:', e.message);
+      }
+    }
 
     await logActivity({
       action: 'DELETE', module: 'Case',
