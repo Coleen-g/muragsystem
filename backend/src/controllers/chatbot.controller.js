@@ -24,7 +24,6 @@ exports.chat = async (req, res) => {
 
     if (!message) return res.status(400).json({ message: 'Message is required.' });
 
-    // Build conversation contents
     const contents = [
       ...history.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
@@ -36,13 +35,17 @@ exports.chat = async (req, res) => {
       },
     ];
 
+    // Prepend system prompt as first user+model exchange (v1 doesn't support system_instruction)
+    const fullContents = [
+      { role: 'user',  parts: [{ text: SYSTEM_PROMPT }] },
+      { role: 'model', parts: [{ text: 'Understood! I am RabiesCarePH, your rabies health assistant. I will only answer questions related to rabies, animal bites, wound care, and PEP vaccine schedules. How can I help you?' }] },
+      ...contents,
+    ];
+
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
-        system_instruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
-        },
-        contents,
+        contents: fullContents,
         generationConfig: {
           temperature:     0.7,
           maxOutputTokens: 512,
