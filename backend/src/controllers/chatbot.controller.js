@@ -35,15 +35,15 @@ exports.chat = async (req, res) => {
       },
     ];
 
-    // Prepend system prompt as first user+model exchange (v1 doesn't support system_instruction)
+    // Prepend system prompt as first user+model exchange
     const fullContents = [
       { role: 'user',  parts: [{ text: SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Understood! I am RabiesCarePH, your rabies health assistant. I will only answer questions related to rabies, animal bites, wound care, and PEP vaccine schedules. How can I help you?' }] },
+      { role: 'model', parts: [{ text: 'Understood! I am RabiesCarePH, your rabies health assistant. How can I help you?' }] },
       ...contents,
     ];
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         contents: fullContents,
         generationConfig: {
