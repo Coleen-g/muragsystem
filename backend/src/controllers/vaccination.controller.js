@@ -1,6 +1,7 @@
 const Vaccination          = require('../models/vaccination.model');
 const Patient              = require('../models/patient.model');
 const Case                 = require('../models/case.model');
+const logActivity = require('../utils/logActivity');
 const User                 = require('../models/user.model');
 const sendPushNotification = require('../utils/sendPushNotification');
 
@@ -386,3 +387,26 @@ exports.getUpcomingVaccinations = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+await logActivity({
+  action: 'CREATE', module: 'Vaccination',
+  description: `Vaccination record created for patient`,
+  user: req.user, targetId: newVaccination._id,
+  targetName: vaccineBrand, req,
+});
+
+// In updateVaccination — add after vaccination.save():
+await logActivity({
+  action: 'UPDATE', module: 'Vaccination',
+  description: `Vaccination record updated`,
+  user: req.user, targetId: vaccination._id,
+  targetName: vaccination.vaccineBrand, req,
+});
+
+// In deleteVaccination — add before vaccination.deleteOne():
+await logActivity({
+  action: 'DELETE', module: 'Vaccination',
+  description: `Vaccination record deleted`,
+  user: req.user, targetId: vaccination._id,
+  targetName: vaccination.vaccineBrand, req,
+});
