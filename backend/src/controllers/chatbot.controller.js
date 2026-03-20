@@ -1,4 +1,4 @@
-const axios = require('axios');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const SYSTEM_PROMPT = `You are RabiesCarePH, a helpful health assistant for the iRabiesCare Rabies Case Management System in the Philippines. 
 
@@ -24,42 +24,34 @@ exports.chat = async (req, res) => {
 
     if (!message) return res.status(400).json({ message: 'Message is required.' });
 
-    const contents = [
-      ...history.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }],
-      })),
-      {
-        role: 'user',
-        parts: [{ text: message }],
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: SYSTEM_PROMPT,
+    });
+
+    // Build chat history
+    const chatHistory = history.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.text }],
+    }));
+
+    const chat = model.startChat({
+      history: chatHistory,
+      generationConfig: {
+        temperature:     0.7,
+        maxOutputTokens: 512,
       },
-    ];
+    });
 
-    // Prepend system prompt as first user+model exchange
-    const fullContents = [
-      { role: 'user',  parts: [{ text: SYSTEM_PROMPT }] },
-      { role: 'model', parts: [{ text: 'Understood! I am RabiesCarePH, your rabies health assistant. How can I help you?' }] },
-      ...contents,
-    ];
+    const result = await chat.sendMessage(message);
+    const reply  = result.response.text();
 
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        contents: fullContents,
-        generationConfig: {
-          temperature:     0.7,
-          maxOutputTokens: 512,
-        },
-      },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-
-    const reply = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!reply) return res.status(500).json({ message: 'No response from AI.' });
 
     res.json({ reply });
   } catch (error) {
-    console.error('[Chatbot] Error:', error.response?.data || error.message);
+    console.error('[Chatbot] Error:', error.message);
     res.status(500).json({ message: 'Chatbot is currently unavailable. Please try again.' });
   }
 };
