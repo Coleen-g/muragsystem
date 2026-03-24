@@ -120,7 +120,12 @@ exports.getAllVaccinations = async (req, res) => {
 // Mobile: Get My Vaccinations
 exports.getMyVaccinations = async (req, res) => {
   try {
-    const userCases  = await Case.find({ patientUserId: req.user.id }).select('_id caseId fullName');
+    const userCases = await Case.find({
+      $or: [
+        { patientUserId: req.user.id },
+        { createdBy: req.user.id },
+      ],
+    }).select('_id caseId fullName');
     if (!userCases.length) return res.status(200).json([]);
 
     const caseIds    = userCases.map(c => c._id);
