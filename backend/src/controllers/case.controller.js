@@ -87,9 +87,13 @@ exports.createCase = async (req, res) => {
 
     const newCase = await Case.create({
       ...sanitized,
-      createdBy:  req.user.id,
-      assignedTo: sanitized.assignedTo || (req.user.role === 'staff' ? req.user.id : null),
+      createdBy:     req.user.id,
+      assignedTo:    sanitized.assignedTo || (req.user.role === 'staff' ? req.user.id : null),
+      // ✅ FIX: automatically link case to the logged-in mobile user
+      patientUserId: req.user.role === 'user' ? req.user.id : null,
     });
+
+   
 
     await logActivity({
       action: 'CREATE', module: 'Case',
