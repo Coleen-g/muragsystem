@@ -1,16 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Calendar, FileText, User } from 'lucide-react-native';
 
-import DashboardScreen from '../screens/DashboardScreen';
-import ScheduleScreen  from '../screens/ScheduleScreen';
-import CasesScreen     from '../screens/CasesScreen';
-import ProfileScreen   from '../screens/ProfileScreen';
-import useThemeStore from '../store/themeStore'; // ← add
-import { useColors } from '../theme/colors';     // ← add
+import DashboardScreen   from '../screens/DashboardScreen';
+import ScheduleScreen    from '../screens/ScheduleScreen';
+import CasesScreen       from '../screens/CasesScreen';
+import ProfileScreen     from '../screens/ProfileScreen';
+import VaccinationScreen from '../screens/VaccinationScreen';
+import useThemeStore     from '../store/themeStore';
+import { useColors }     from '../theme/colors';
 
-const Tab = createBottomTabNavigator();
+const Tab           = createBottomTabNavigator();
+const ScheduleStack = createNativeStackNavigator();
+
+// Nested stack: Vaccination (list) → Schedule (full schedule detail)
+function ScheduleNavigator() {
+  return (
+    <ScheduleStack.Navigator screenOptions={{ headerShown: false }}>
+      <ScheduleStack.Screen name="Vaccination" component={VaccinationScreen} />
+      <ScheduleStack.Screen name="Schedule"    component={ScheduleScreen} />
+    </ScheduleStack.Navigator>
+  );
+}
 
 const TabIcon = ({ icon: Icon, label, focused }) => (
   <View style={[tabStyles.wrap, focused && tabStyles.wrapActive]}>
@@ -20,17 +33,17 @@ const TabIcon = ({ icon: Icon, label, focused }) => (
 );
 
 export default function BottomTabNavigator() {
-  const { dark } = useThemeStore(); // ← add
-  const colors   = useColors(dark); // ← add
-  
+  const { dark } = useThemeStore();
+  const colors   = useColors(dark);
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: tabStyles.bar,
-         backgroundColor: colors.tabBar,     // ← dynamic
-          borderTopColor:  colors.border,
+        backgroundColor: colors.tabBar,
+        borderTopColor:  colors.border,
       }}
     >
       <Tab.Screen
@@ -41,8 +54,8 @@ export default function BottomTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Schedule"
-        component={ScheduleScreen}
+        name="ScheduleTab"
+        component={ScheduleNavigator}
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon={Calendar} label="Schedule" focused={focused} />,
         }}

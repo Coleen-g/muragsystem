@@ -82,7 +82,6 @@ const PanelShell = ({ width = 'max-w-2xl', children, onBackdropClick }) => (
   </>
 );
 
-/* Shared dose form (used by both Add and Edit) */
 const DoseScheduleForm = ({ doses, updateDose, setDoseStatus }) => {
   const rowStyle = (status) => {
     if (status === 'done')   return 'bg-emerald-50/60 border-l-4 border-l-emerald-400';
@@ -97,13 +96,13 @@ const DoseScheduleForm = ({ doses, updateDose, setDoseStatus }) => {
         </div>
         <div>
           <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">WHO PEP Dose Schedule</p>
-          <p className="text-[11px] text-slate-400">Set dates · Mark doses as done or missed</p>
+          <p className="text-[11px] text-slate-400">Set scheduled dates · Mark doses as done or missed</p>
         </div>
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-[140px_1fr_1fr_110px] gap-2 px-5 py-2.5 bg-slate-50 border-b border-slate-100">
-        {['Dose', 'Scheduled', 'Administered', 'Action'].map(h => (
+      <div className="grid grid-cols-[160px_1fr_120px] gap-2 px-5 py-2.5 bg-slate-50 border-b border-slate-100">
+        {['Dose', 'Scheduled Date', 'Action'].map(h => (
           <span key={h} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{h}</span>
         ))}
       </div>
@@ -114,21 +113,27 @@ const DoseScheduleForm = ({ doses, updateDose, setDoseStatus }) => {
           const isDone = dose.status === 'done';
           const isMissed = dose.status === 'missed';
           return (
-            <div key={key} className={`grid grid-cols-[140px_1fr_1fr_110px] gap-2 items-center px-5 py-3.5 transition-all ${rowStyle(dose.status)}`}>
+            <div key={key} className={`grid grid-cols-[160px_1fr_120px] gap-2 items-center px-5 py-3.5 transition-all ${rowStyle(dose.status)}`}>
+              {/* Dose label */}
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className={`text-sm font-bold ${isDone ? 'text-emerald-700' : isMissed ? 'text-red-600' : 'text-slate-700'}`}>{label}</span>
                   {idx === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-purple-50 text-purple-600 border border-purple-100">Initial</span>}
-                  {isDone   && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">✓</span>}
-                  {isMissed && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-red-100 text-red-600">✗</span>}
+                  {isDone   && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">✓ Done</span>}
+                  {isMissed && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-red-100 text-red-600">✗ Missed</span>}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-0.5">{description}</p>
               </div>
-              <input type="date" value={dose.scheduledDate} onChange={e => updateDose(key, 'scheduledDate', e.target.value)}
-                className="w-full px-2.5 py-2 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
-              <input type="date" value={dose.administeredDate} onChange={e => updateDose(key, 'administeredDate', e.target.value)}
-                disabled={!isDone}
-                className={`w-full px-2.5 py-2 border rounded-xl text-xs focus:outline-none focus:ring-2 transition-all ${isDone ? 'border-emerald-300 text-emerald-700 bg-white focus:border-emerald-400 focus:ring-emerald-100' : 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'}`} />
+
+              {/* Scheduled date only */}
+              <input
+                type="date"
+                value={dose.scheduledDate}
+                onChange={e => updateDose(key, 'scheduledDate', e.target.value)}
+                className="w-full px-2.5 py-2 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+              />
+
+              {/* Done / Miss buttons */}
               <div className="flex gap-1">
                 <button type="button" onClick={() => setDoseStatus(key, 'done')}
                   className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${isDone ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-400 hover:border-emerald-400 hover:text-emerald-600'}`}>
@@ -148,7 +153,7 @@ const DoseScheduleForm = ({ doses, updateDose, setDoseStatus }) => {
       <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center gap-4 text-[11px] text-slate-400">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" />Done</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" />Missed</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-300" />Scheduled</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" />Pending</span>
       </div>
     </div>
   );
@@ -371,11 +376,21 @@ const EditPanel = ({ vaccinationId, onClose, onSaved }) => {
 
   const set = (f) => (v) => setForm(p => ({ ...p, [f]: v }));
   const updateDose = (key, field, val) => setDoses(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }));
-  const setDoseStatus = (key, newStatus) => setDoses(prev => {
-    const cur = prev[key];
-    const resolved = cur.status === newStatus ? 'pending' : newStatus;
-    return { ...prev, [key]: { ...cur, status: resolved, administeredDate: resolved === 'done' && !cur.administeredDate ? new Date().toISOString().split('T')[0] : cur.administeredDate } };
-  });
+ const setDoseStatus = (key, newStatus) => setDoses(prev => {
+  const cur = prev[key];
+  const resolved = cur.status === newStatus ? 'pending' : newStatus;
+  return {
+    ...prev,
+    [key]: {
+      ...cur,
+      status: resolved,
+      // ✅ Auto-set today as administered date when marked Done
+      administeredDate: resolved === 'done'
+        ? new Date().toISOString().split('T')[0]
+        : '',
+    }
+  };
+});
 
   const doneCount   = DOSE_SCHEDULE.filter(({ key }) => doses[key].status === 'done').length;
   const progressPct = (doneCount / 5) * 100;
@@ -530,11 +545,21 @@ const AddPanel = ({ onClose, onSaved }) => {
 
   const set = (k) => (v) => setForm(p => ({ ...p, [k]: v }));
   const updateDose = (key, field, val) => setDoses(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }));
-  const setDoseStatus = (key, newStatus) => setDoses(prev => {
-    const cur = prev[key];
-    const resolved = cur.status === newStatus ? 'pending' : newStatus;
-    return { ...prev, [key]: { ...cur, status: resolved, administeredDate: resolved === 'done' && !cur.administeredDate ? new Date().toISOString().split('T')[0] : cur.administeredDate } };
-  });
+ const setDoseStatus = (key, newStatus) => setDoses(prev => {
+  const cur = prev[key];
+  const resolved = cur.status === newStatus ? 'pending' : newStatus;
+  return {
+    ...prev,
+    [key]: {
+      ...cur,
+      status: resolved,
+      // ✅ Auto-set today as administered date when marked Done
+      administeredDate: resolved === 'done'
+        ? new Date().toISOString().split('T')[0]
+        : '',
+    }
+  };
+});
 
   const doneCount   = DOSE_SCHEDULE.filter(({ key }) => doses[key].status === 'done').length;
   const progressPct = (doneCount / 5) * 100;
@@ -606,35 +631,27 @@ const AddPanel = ({ onClose, onSaved }) => {
             )}
           </div>
 
-          {/* Vaccine details */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center"><Syringe size={13} className="text-purple-600" /></div>
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Vaccine Details</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="col-span-2 space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vaccine Brand <span className="text-red-400">*</span></label>
-                <input type="text" value={form.vaccineBrand} onChange={e => set('vaccineBrand')(e.target.value)} placeholder="e.g. Verorab, Speeda, Rabipur" className={inputCls} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Injection Site</label>
-                <div className="relative">
-                  <select value={form.injectionSite} onChange={e => set('injectionSite')(e.target.value)} className={`${inputCls} appearance-none`}>
-                    <option>Left Arm</option><option>Right Arm</option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manufacturer</label>
-                <input type="text" value={form.manufacturer} onChange={e => set('manufacturer')(e.target.value)} placeholder="e.g. Sanofi Pasteur" className={inputCls} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vaccine Stock Used (doses)</label>
-                <input type="number" min="0" value={form.vaccineStockUsed} onChange={e => set('vaccineStockUsed')(e.target.value)} placeholder="e.g. 1" className={inputCls} />
-              </div>
-            </div>
-          </div>
+         {/* Vaccine details */}
+<div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+    <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center"><Syringe size={13} className="text-purple-600" /></div>
+    <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Vaccine Details</span>
+  </div>
+  <div className="grid grid-cols-2 gap-3.5">
+    <div className="col-span-2 space-y-1.5">
+      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vaccine Brand <span className="text-red-400">*</span></label>
+      <input type="text" value={form.vaccineBrand} onChange={e => set('vaccineBrand')(e.target.value)} placeholder="e.g. Verorab, Speeda, Rabipur" className={inputCls} />
+    </div>
+    <div className="col-span-2 space-y-1.5">
+      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Injection Site</label>
+      <div className="relative">
+        <select value={form.injectionSite} onChange={e => set('injectionSite')(e.target.value)} className={`${inputCls} appearance-none`}>
+          <option>Left Arm</option><option>Right Arm</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
 
           {/* Progress */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">

@@ -8,7 +8,7 @@ import {
   Shield, Plus, FileText, Syringe, Clock,
   CheckCircle, AlertCircle, LogOut, ChevronRight,
   Bell, X, Activity, MapPin, Calendar, Heart,
-  Stethoscope, MoreVertical, TrendingUp,
+  Stethoscope, MoreVertical, TrendingUp, Bot,
 } from 'lucide-react-native';
 import useAuthStore from '../store/authStore';
 import useThemeStore from '../store/themeStore';
@@ -123,26 +123,53 @@ const NotificationBanner = ({ dose, onDismiss }) => {
   );
 };
 
-/* ── FAB ── */
-const FAB = ({ onPress }) => {
-  const scale = useRef(new Animated.Value(1)).current;
+/* ── FAB group (AI button + Add button) ── */
+const FABGroup = ({ onAddPress, onChatPress }) => {
+  const addScale  = useRef(new Animated.Value(1)).current;
+  const chatScale = useRef(new Animated.Value(1)).current;
+  const chatPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Subtle pulse on the AI button to draw attention
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(chatPulse, { toValue: 1.12, duration: 1500, useNativeDriver: true }),
+        Animated.timing(chatPulse, { toValue: 1,    duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
   return (
-    <Animated.View style={{
-      position:'absolute', bottom:28, right:20, zIndex:999,
-      shadowColor:'#00BCD4', shadowOffset:{ width:0, height:6 },
-      shadowOpacity:0.5, shadowRadius:14, elevation:12,
-      transform:[{ scale }],
-    }}>
-      <TouchableOpacity
-        style={{ width:56, height:56, borderRadius:28, backgroundColor:'#00BCD4', alignItems:'center', justifyContent:'center' }}
-        onPress={onPress}
-        onPressIn={() => Animated.spring(scale, { toValue:0.88, useNativeDriver:true }).start()}
-        onPressOut={() => Animated.spring(scale, { toValue:1, friction:3, useNativeDriver:true }).start()}
-        activeOpacity={1}
-      >
-        <Plus color="#fff" size={26} strokeWidth={2.5} />
-      </TouchableOpacity>
-    </Animated.View>
+    <View style={s.fabGroup}>
+      {/* AI Chat FAB */}
+      <Animated.View style={[s.fabAiWrapper, { transform: [{ scale: chatScale }] }]}>
+        {/* Pulse ring */}
+        <Animated.View style={[s.fabAiPulse, { transform: [{ scale: chatPulse }] }]} />
+        <TouchableOpacity
+          style={s.fabAi}
+          onPress={onChatPress}
+          onPressIn={() => Animated.spring(chatScale, { toValue: 0.88, useNativeDriver: true }).start()}
+          onPressOut={() => Animated.spring(chatScale, { toValue: 1, friction: 3, useNativeDriver: true }).start()}
+          activeOpacity={1}
+        >
+          <Bot color="#fff" size={22} strokeWidth={2} />
+        </TouchableOpacity>
+        <Text style={s.fabAiLabel}>AI</Text>
+      </Animated.View>
+
+      {/* Add Case FAB */}
+      <Animated.View style={{ transform: [{ scale: addScale }] }}>
+        <TouchableOpacity
+          style={s.fabAdd}
+          onPress={onAddPress}
+          onPressIn={() => Animated.spring(addScale, { toValue: 0.88, useNativeDriver: true }).start()}
+          onPressOut={() => Animated.spring(addScale, { toValue: 1, friction: 3, useNativeDriver: true }).start()}
+          activeOpacity={1}
+        >
+          <Plus color="#fff" size={26} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -177,7 +204,8 @@ export default function DashboardScreen({ navigation }) {
   const handleLogout = async () => { await logout(); navigation.replace('Login'); };
 
   const pendingCount   = myCases.filter(c => c.status?.toLowerCase() === 'pending').length;
-  const ongoingCount   = myCases.filter(c => c.status?.toLowerCase() === 'ongoing').length;
+ const activeCount = myCases.filter(c => c.status?.toLowerCase() !== 'completed').length;
+ const ongoingCount   = myCases.filter(c => c.status?.toLowerCase() === 'ongoing').length; // ← keep if used in stats card
   const completedCount = myCases.filter(c => c.status?.toLowerCase() === 'completed').length;
   const allUpcoming    = getUpcomingDoses(myVaccinations).slice(0, 5);
   const urgentDoses    = allUpcoming.filter(d => {
@@ -191,16 +219,11 @@ export default function DashboardScreen({ navigation }) {
     <View style={[s.root, { backgroundColor: colors.bg }]}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
-      {/* ════════════════════════════
-          HEADER — blue→cyan gradient
-          with decorative circles
-      ════════════════════════════ */}
-      <View style={s.header}>
-        {/* Decorative bg circles */}
+      {/* HEADER */}
+      <View style={[s.header, { backgroundColor: colors.header }]}>
         <View style={s.bgCircle1} />
         <View style={s.bgCircle2} />
 
-        {/* Top nav bar */}
         <View style={s.topBar}>
           <View style={s.topLeft}>
             <View style={s.shieldBox}>
@@ -226,7 +249,6 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Welcome card — blue gradient with illustration */}
         <View style={s.welcomeCard}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -234,14 +256,13 @@ export default function DashboardScreen({ navigation }) {
               <Text style={s.welcomeTitle}>Welcome Back, {user?.name?.split(' ')[0] || 'Patient'}!</Text>
             </View>
             <Text style={s.welcomeDesc}>
-              Stay on top of your health care journey. You have {ongoingCount} active case and {allUpcoming.length} upcoming vaccination.
+              Stay on top of your health care journey. You have {activeCount} active case{activeCount !== 1 ? 's' : ''} and {allUpcoming.length} upcoming vaccination.
             </Text>
             <TouchableOpacity style={s.welcomeBtn}>
               <Text style={s.welcomeBtnText}>Your health matters</Text>
               <Heart color="#ef4444" size={13} fill="#ef4444" style={{ marginLeft: 6 }} />
             </TouchableOpacity>
           </View>
-          {/* Medical illustration — nested circles */}
           <View style={s.illustOuter}>
             <View style={s.illustInner}>
               <Stethoscope color="#fff" size={26} />
@@ -259,36 +280,30 @@ export default function DashboardScreen({ navigation }) {
         />
       ))}
 
-      {/* ════════════════════════
-          BODY
-      ════════════════════════ */}
+      {/* BODY */}
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1565C0" />}
       >
-
-        {/* MY CASES OVERVIEW */}
-        <Text style={s.sectionLabel}>MY CASES OVERVIEW</Text>
+        <Text style={[s.sectionLabel, { color: dark ? colors.accent : '#0369a1' }]}>MY CASES OVERVIEW</Text>
         {loading ? (
           <ActivityIndicator color="#1565C0" style={{ marginVertical: 20 }} />
         ) : (
-          /* 3-column horizontal stat grid — as in screenshot */
           <View style={s.statsRow}>
             {[
-              { lbl:'PENDING',   num: pendingCount,   Icon: Clock,       iconBg:'#dbeafe', iconColor:'#3b82f6', gradient:['#3b82f6','#2563eb'] },
-              { lbl:'ONGOING',   num: ongoingCount,   Icon: Activity,    iconBg:'#ede9fe', iconColor:'#7c3aed', gradient:['#8b5cf6','#7c3aed'] },
-              { lbl:'COMPLETED', num: completedCount, Icon: CheckCircle, iconBg:'#cffafe', iconColor:'#0891b2', gradient:['#22d3ee','#0891b2'] },
+              { lbl:'PENDING',   num: pendingCount,   Icon: Clock,       gradient:['#3b82f6','#2563eb'] },
+              { lbl:'ONGOING',   num: ongoingCount,   Icon: Activity,    gradient:['#8b5cf6','#7c3aed'] },
+              { lbl:'COMPLETED', num: completedCount, Icon: CheckCircle, gradient:['#22d3ee','#0891b2'] },
             ].map(({ lbl, num, Icon, gradient }) => (
-              <View key={lbl} style={s.statCard}>
-                <Text style={s.statLbl}>{lbl}</Text>
-                <Text style={s.statNum}>{num}</Text>
+              <View key={lbl} style={[s.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[s.statLbl, { color: colors.subText }]}>{lbl}</Text>
+                <Text style={[s.statNum, { color: colors.text }]}>{num}</Text>
                 <View style={{ flexDirection:'row', alignItems:'center', gap:3, marginBottom:10 }}>
                   <TrendingUp color="#10b981" size={10} />
                   <Text style={{ fontSize:10, color:'#10b981', fontWeight:'600' }}>+0%</Text>
                 </View>
-                {/* Gradient-style rounded icon box */}
                 <View style={[s.statIconBox, { backgroundColor: gradient[0] }]}>
                   <Icon color="#fff" size={20} />
                 </View>
@@ -297,7 +312,6 @@ export default function DashboardScreen({ navigation }) {
           </View>
         )}
 
-        {/* REGISTER CTA */}
         <TouchableOpacity
           style={s.ctaBtn}
           onPress={() => navigation.navigate('AddCase')}
@@ -307,13 +321,13 @@ export default function DashboardScreen({ navigation }) {
           <Text style={s.ctaText}>Register New Exposure Case</Text>
         </TouchableOpacity>
 
-        {/* RECENT CASES — cyan container */}
-        <View style={s.sectionContainer}>
+        {/* RECENT CASES */}
+        <View style={[s.sectionContainer, { backgroundColor: dark ? colors.card : '#f0fbff', borderColor: colors.border }]}>
           <View style={s.sectionContainerHeader}>
-            <Text style={s.sectionContainerTitle}>Recent Cases</Text>
+            <Text style={[s.sectionContainerTitle, { color: dark ? colors.accent : '#0369a1' }]}>Recent Cases</Text>
             {myCases.length > 0 && (
               <TouchableOpacity style={s.viewAllRow}
-                onPress={() => navigation.getParent()?.navigate('Cases')}>
+                onPress={() => navigation.navigate('Cases')}>
                 <Text style={s.viewAllText}>View All</Text>
                 <ChevronRight color="#0ea5e9" size={15} />
               </TouchableOpacity>
@@ -323,7 +337,7 @@ export default function DashboardScreen({ navigation }) {
           {loading ? null : myCases.length === 0 ? (
             <View style={s.emptyBox}>
               <FileText color="#cbd5e1" size={26} />
-              <Text style={s.emptyT}>No cases submitted yet</Text>
+              <Text style={[s.emptyT, { color: colors.subText }]}>No cases submitted yet</Text>
             </View>
           ) : myCases.slice(0, 3).map((c, i) => {
             const progress = c.status?.toLowerCase() === 'completed' ? 100
@@ -331,34 +345,30 @@ export default function DashboardScreen({ navigation }) {
               : c.status?.toLowerCase() === 'urgent' ? 80 : 20;
             return (
               <TouchableOpacity
-                key={`case-${c.id || i}`}
-                style={s.caseCard}
-                onPress={() => navigation.navigate('CaseDetail', { caseId: c.id })}
+                key={`case-${c._id || i}`}
+                style={[s.caseCard, { backgroundColor: colors.card }]}
+                onPress={() => navigation.navigate('CaseDetail', { caseId: c._id })}
                 activeOpacity={0.85}
               >
-                {/* Decorative circle inside card */}
                 <View style={s.caseCircle} />
-
                 <View style={{ flexDirection:'row', alignItems:'flex-start', gap:12, marginBottom:14 }}>
                   <View style={s.caseIconBox}>
                     <FileText color="#fff" size={17} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection:'row', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                      <Text style={s.caseName} numberOfLines={2}>{c.fullName || `Case ${i + 1}`}</Text>
+                      <Text style={[s.caseName, { color: colors.text }]} numberOfLines={2}>{c.fullName || `Case ${i + 1}`}</Text>
                       <StatusBadge status={c.status} />
                       <TouchableOpacity hitSlop={{ top:8, bottom:8, left:8, right:8 }}>
                         <MoreVertical color="#94a3b8" size={16} />
                       </TouchableOpacity>
                     </View>
-                    <Text style={s.caseMeta}>
+                    <Text style={[s.caseMeta, { color: colors.subText }]}>
                       <Text style={s.caseMetaBlue}>Case #{c.caseId}</Text>
                       {' • Exposed: '}{c.dateOfExposure ? fmtDate(c.dateOfExposure) : '—'}
                     </Text>
                   </View>
                 </View>
-
-                {/* Exposure pill + progress bar */}
                 <View style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <View style={s.exposurePill}>
                     <Text style={s.exposurePillText}>{c.exposureType || '—'}</Text>
@@ -373,10 +383,10 @@ export default function DashboardScreen({ navigation }) {
           })}
         </View>
 
-        {/* UPCOMING VACCINATIONS — cyan container */}
-        <View style={[s.sectionContainer, { marginTop: 4 }]}>
+        {/* UPCOMING VACCINATIONS */}
+        <View style={[s.sectionContainer, { marginTop: 4, backgroundColor: dark ? colors.card : '#f0fbff', borderColor: colors.border }]}>
           <View style={s.sectionContainerHeader}>
-            <Text style={s.sectionContainerTitle}>Upcoming Vaccinations</Text>
+            <Text style={[s.sectionContainerTitle, { color: dark ? colors.accent : '#0369a1' }]}>Upcoming Vaccinations</Text>
             {allUpcoming.length > 0 && (
               <TouchableOpacity style={s.viewAllRow}>
                 <Text style={s.viewAllText}>View All</Text>
@@ -390,69 +400,59 @@ export default function DashboardScreen({ navigation }) {
           ) : allUpcoming.length === 0 ? (
             <View style={s.emptyBox}>
               <Syringe color="#cbd5e1" size={26} />
-              <Text style={s.emptyT}>No upcoming vaccinations</Text>
+              <Text style={[s.emptyT, { color: colors.subText }]}>No upcoming vaccinations</Text>
               <Text style={{ fontSize:11, color:'#cbd5e1', textAlign:'center' }}>
                 Your PEP schedule will appear here once assigned
               </Text>
             </View>
-          ) : allUpcoming.map((v) => {
-            const accent = daysUntil(v.date) === 'Today' ? '#ef4444'
-              : daysUntil(v.date) === 'Tomorrow' ? '#f59e0b' : '#2563eb';
-            return (
-              <View
-                key={`vax-${v.vaccinationId}-${v.doseKey}`}
-                style={s.vaxCard}
-              >
-                {/* Decorative circle in vax card */}
-                <View style={s.vaxCircle} />
-
-                {/* Top row */}
-                <View style={{ flexDirection:'row', alignItems:'flex-start', gap:12, marginBottom:14 }}>
-                  <View style={s.vaxIconBox}>
-                    <Syringe color="#fff" size={18} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.vaxDose}>{v.label}</Text>
-                    <Text style={s.vaxMeta}>
-                      <Text style={s.vaxMetaBlue}>Case #{v.caseId}</Text>
-                      {' • '}{v.caseName}
-                    </Text>
-                  </View>
-                  <CountdownBadge date={v.date} />
+          ) : allUpcoming.map((v) => (
+            <View
+              key={`vax-${v.vaccinationId}-${v.doseKey}`}
+              style={[s.vaxCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <View style={s.vaxCircle} />
+              <View style={{ flexDirection:'row', alignItems:'flex-start', gap:12, marginBottom:14 }}>
+                <View style={s.vaxIconBox}>
+                  <Syringe color="#fff" size={18} />
                 </View>
-
-                {/* Vaccine brand */}
-                <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:10 }}>
-                  <Syringe color="#64748b" size={13} />
-                  <Text style={{ fontSize:13, color:'#1e293b', fontWeight:'600' }}>{v.vaccineBrand || '—'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.vaxDose, { color: colors.text }]}>{v.label}</Text>
+                  <Text style={[s.vaxMeta, { color: colors.subText }]}>
+                    <Text style={s.vaxMetaBlue}>Case #{v.caseId}</Text>
+                    {' • '}{v.caseName}
+                  </Text>
                 </View>
-
-                {/* Date & time */}
-                <View style={{ flexDirection:'row', alignItems:'center', gap:18, marginBottom:8 }}>
-                  <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                    <Calendar color="#64748b" size={13} />
-                    <Text style={s.vaxInfo}>{fmtDate(v.date)}</Text>
-                  </View>
-                  <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                    <Clock color="#64748b" size={13} />
-                    <Text style={s.vaxInfo}>{fmtTime(v.date)}</Text>
-                  </View>
+                <CountdownBadge date={v.date} />
+              </View>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:10 }}>
+                <Syringe color="#64748b" size={13} />
+                <Text style={{ fontSize:13, color:'#1e293b', fontWeight:'600' }}>{v.vaccineBrand || '—'}</Text>
+              </View>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:18, marginBottom:8 }}>
+                <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                  <Calendar color="#64748b" size={13} />
+                  <Text style={s.vaxInfo}>{fmtDate(v.date)}</Text>
                 </View>
-
-                {/* Location row */}
-                <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:16 }}>
-                  <MapPin color="#64748b" size={13} />
-                  <Text style={s.vaxInfo}>Main Clinic</Text>
+                <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                  <Clock color="#64748b" size={13} />
+                  <Text style={s.vaxInfo}>{fmtTime(v.date)}</Text>
                 </View>
               </View>
-            );
-          })}
+              <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:16 }}>
+                <MapPin color="#64748b" size={13} />
+                <Text style={s.vaxInfo}>Main Clinic</Text>
+              </View>
+            </View>
+          ))}
         </View>
 
       </ScrollView>
 
-      {/* FAB */}
-      <FAB onPress={() => navigation.navigate('AddCase')} />
+      {/* FAB Group — AI button above + button */}
+      <FABGroup
+        onAddPress={() => navigation.navigate('AddCase')}
+        onChatPress={() => navigation.navigate('Chat')}
+      />
     </View>
   );
 }
@@ -460,24 +460,19 @@ export default function DashboardScreen({ navigation }) {
 const s = StyleSheet.create({
   root: { flex:1, backgroundColor:'#eaf6fb' },
 
-  /* ── Header ── */
   header: {
     backgroundColor:'#1565C0',
     paddingHorizontal:16,
     paddingBottom:22,
     overflow:'hidden',
-    /* Simulate blue→cyan gradient with a bottom overlay feel */
   },
-  /* Decorative translucent circles in the header */
   bgCircle1: {
     position:'absolute', width:260, height:260, borderRadius:130,
-    backgroundColor:'rgba(0,188,212,0.25)',
-    top:-80, right:-80,
+    backgroundColor:'rgba(0,188,212,0.25)', top:-80, right:-80,
   },
   bgCircle2: {
     position:'absolute', width:160, height:160, borderRadius:80,
-    backgroundColor:'rgba(0,188,212,0.15)',
-    top:20, right:60,
+    backgroundColor:'rgba(0,188,212,0.15)', top:20, right:60,
   },
 
   topBar: {
@@ -510,7 +505,6 @@ const s = StyleSheet.create({
   },
   avatarText: { fontSize:12, fontWeight:'800', color:'#fff' },
 
-  /* Welcome card */
   welcomeCard: {
     backgroundColor:'rgba(255,255,255,0.15)',
     borderRadius:20, padding:18,
@@ -541,7 +535,6 @@ const s = StyleSheet.create({
     alignItems:'center', justifyContent:'center',
   },
 
-  /* ── Stats row — 3 columns ── */
   statsRow: { flexDirection:'row', gap:8, marginBottom:16 },
   statCard: {
     flex:1, backgroundColor:'#fff', borderRadius:16,
@@ -557,7 +550,6 @@ const s = StyleSheet.create({
     marginTop:4,
   },
 
-  /* ── CTA ── */
   ctaBtn: {
     flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8,
     backgroundColor:'#1565C0', borderRadius:14, paddingVertical:16, marginBottom:16,
@@ -566,7 +558,6 @@ const s = StyleSheet.create({
   },
   ctaText: { color:'#fff', fontSize:15, fontWeight:'700' },
 
-  /* ── Section containers (cyan tinted card) ── */
   sectionContainer: {
     backgroundColor:'#f0fbff',
     borderRadius:20, padding:16, marginBottom:14,
@@ -580,7 +571,6 @@ const s = StyleSheet.create({
   viewAllRow: { flexDirection:'row', alignItems:'center', gap:2 },
   viewAllText:{ fontSize:13, color:'#0ea5e9', fontWeight:'600' },
 
-  /* ── Case card (inside container) ── */
   caseCard: {
     backgroundColor:'#fff', borderRadius:16, padding:14,
     marginBottom:10, overflow:'hidden',
@@ -589,8 +579,7 @@ const s = StyleSheet.create({
   },
   caseCircle: {
     position:'absolute', width:100, height:100, borderRadius:50,
-    backgroundColor:'rgba(14,165,233,0.07)',
-    top:-20, right:-10,
+    backgroundColor:'rgba(14,165,233,0.07)', top:-20, right:-10,
   },
   caseIconBox: {
     width:44, height:44, borderRadius:12,
@@ -606,17 +595,10 @@ const s = StyleSheet.create({
     borderWidth:1, borderColor:'#bae6fd',
   },
   exposurePillText: { fontSize:11, color:'#0369a1', fontWeight:'600' },
-  progressTrack: {
-    flex:1, height:7, borderRadius:4,
-    backgroundColor:'#e0f2fe',
-  },
-  progressFill: {
-    height:7, borderRadius:4,
-    backgroundColor:'#2563eb',
-  },
-  progressPct: { fontSize:11, fontWeight:'700', color:'#64748b', minWidth:30, textAlign:'right' },
+  progressTrack: { flex:1, height:7, borderRadius:4, backgroundColor:'#e0f2fe' },
+  progressFill:  { height:7, borderRadius:4, backgroundColor:'#2563eb' },
+  progressPct:   { fontSize:11, fontWeight:'700', color:'#64748b', minWidth:30, textAlign:'right' },
 
-  /* ── Vaccination card (inside container) ── */
   vaxCard: {
     backgroundColor:'#fff', borderRadius:16, padding:16,
     marginBottom:10, overflow:'hidden',
@@ -626,8 +608,7 @@ const s = StyleSheet.create({
   },
   vaxCircle: {
     position:'absolute', width:110, height:110, borderRadius:55,
-    backgroundColor:'rgba(14,165,233,0.07)',
-    bottom:-30, right:-20,
+    backgroundColor:'rgba(14,165,233,0.07)', bottom:-30, right:-20,
   },
   vaxIconBox: {
     width:44, height:44, borderRadius:12,
@@ -639,15 +620,43 @@ const s = StyleSheet.create({
   vaxMetaBlue: { color:'#0369a1', fontWeight:'600' },
   vaxInfo:     { fontSize:12, color:'#64748b', fontWeight:'500' },
 
-  /* ── Section label (above stats) ── */
   sectionLabel: {
     fontSize:11, fontWeight:'800', color:'#0369a1',
     letterSpacing:1.2, marginBottom:10, textTransform:'uppercase',
   },
 
-  /* ── Empty state ── */
-  emptyBox: {
-    alignItems:'center', gap:8, paddingVertical:20,
+  emptyBox: { alignItems:'center', gap:8, paddingVertical:20 },
+  emptyT:   { fontSize:13, fontWeight:'600', color:'#94a3b8' },
+
+  /* ── FAB Group ── */
+  fabGroup: {
+    position:'absolute', bottom:28, right:20, zIndex:999,
+    alignItems:'center', gap:12,
   },
-  emptyT: { fontSize:13, fontWeight:'600', color:'#94a3b8' },
+  fabAiWrapper: {
+    alignItems:'center',
+  },
+  fabAiPulse: {
+    position:'absolute',
+    width:62, height:62, borderRadius:31,
+    backgroundColor:'rgba(124,58,237,0.25)',
+  },
+  fabAi: {
+    width:52, height:52, borderRadius:26,
+    backgroundColor:'#7c3aed',
+    alignItems:'center', justifyContent:'center',
+    shadowColor:'#7c3aed', shadowOffset:{ width:0, height:6 },
+    shadowOpacity:0.5, shadowRadius:12, elevation:10,
+  },
+  fabAiLabel: {
+    fontSize:9, fontWeight:'800', color:'#7c3aed',
+    marginTop:4, letterSpacing:1,
+  },
+  fabAdd: {
+    width:56, height:56, borderRadius:28,
+    backgroundColor:'#00BCD4',
+    alignItems:'center', justifyContent:'center',
+    shadowColor:'#00BCD4', shadowOffset:{ width:0, height:6 },
+    shadowOpacity:0.5, shadowRadius:14, elevation:12,
+  },
 });

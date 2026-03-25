@@ -8,6 +8,59 @@ import { Mail, Lock, Eye, EyeOff, Shield, User, UserPlus } from 'lucide-react-na
 import { registerUser } from '../api/auth';
 import useAuthStore from '../store/authStore';
 
+/* ─────────────────────────────────────
+   InputField moved OUTSIDE component
+   to prevent re-creation on re-render
+   which caused the one-letter bug
+───────────────────────────────────── */
+const InputField = ({
+  label, value, onChangeText, placeholder, secureTextEntry,
+  keyboardType, autoCapitalize, icon: Icon, focused,
+  onFocus, onBlur, showToggle, onToggle, showing,
+  inputRef, nextRef, returnKeyType, editable,
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <Pressable
+      style={[styles.inputRow, focused && styles.inputRowFocused]}
+      onPress={() => inputRef?.current?.focus()}
+    >
+      <Icon color={focused ? '#1565C0' : '#94a3b8'} size={17} />
+      <TextInput
+        ref={inputRef}
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#b0bec5"
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={secureTextEntry && !showing}
+        keyboardType={keyboardType || 'default'}
+        autoCapitalize={autoCapitalize || 'sentences'}
+        autoCorrect={false}
+        returnKeyType={returnKeyType || (nextRef ? 'next' : 'done')}
+        editable={editable !== false}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onSubmitEditing={() => nextRef?.current?.focus()}
+        blurOnSubmit={false}
+      />
+      {showToggle && (
+        <TouchableOpacity
+          onPress={onToggle}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {showing
+            ? <EyeOff color="#94a3b8" size={17} />
+            : <Eye    color="#94a3b8" size={17} />}
+        </TouchableOpacity>
+      )}
+    </Pressable>
+  </View>
+);
+
+/* ─────────────────────────────────────
+   Main Screen
+───────────────────────────────────── */
 export default function RegisterScreen({ navigation }) {
   const [name, setName]                 = useState('');
   const [email, setEmail]               = useState('');
@@ -74,51 +127,6 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  const InputField = ({
-    label, value, onChangeText, placeholder, secureTextEntry,
-    keyboardType, autoCapitalize, icon: Icon, focused,
-    onFocus, onBlur, showToggle, onToggle, showing,
-    inputRef, nextRef, returnKeyType,
-  }) => (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <Pressable
-        style={[styles.inputRow, focused && styles.inputRowFocused]}
-        onPress={() => inputRef?.current?.focus()}
-      >
-        <Icon color={focused ? '#1565C0' : '#94a3b8'} size={17} />
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor="#b0bec5"
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry && !showing}
-          keyboardType={keyboardType || 'default'}
-          autoCapitalize={autoCapitalize || 'sentences'}
-          autoCorrect={false}
-          returnKeyType={returnKeyType || (nextRef ? 'next' : 'done')}
-          editable={!loading}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          onSubmitEditing={() => nextRef?.current?.focus()}
-          blurOnSubmit={false}
-        />
-        {showToggle && (
-          <TouchableOpacity
-            onPress={onToggle}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            {showing
-              ? <EyeOff color="#94a3b8" size={17} />
-              : <Eye    color="#94a3b8" size={17} />}
-          </TouchableOpacity>
-        )}
-      </Pressable>
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -127,7 +135,6 @@ export default function RegisterScreen({ navigation }) {
     >
       <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
 
-      {/* Decorative circles — matching Dashboard header */}
       <View style={styles.circle1} />
       <View style={styles.circle2} />
       <View style={styles.circle3} />
@@ -166,16 +173,18 @@ export default function RegisterScreen({ navigation }) {
               label="Full Name" value={name} onChangeText={setName}
               placeholder="Juan Dela Cruz" icon={User}
               inputRef={nameRef} nextRef={emailRef}
-              focused={nameFocused}
-              onFocus={() => setNameFocused(true)} onBlur={() => setNameFocused(false)}
+              focused={nameFocused} editable={!loading}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setNameFocused(false)}
             />
             <InputField
               label="Email Address" value={email} onChangeText={setEmail}
               placeholder="your@email.com" icon={Mail}
               keyboardType="email-address" autoCapitalize="none"
               inputRef={emailRef} nextRef={passRef}
-              focused={emailFocused}
-              onFocus={() => setEmailFocused(true)} onBlur={() => setEmailFocused(false)}
+              focused={emailFocused} editable={!loading}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
             />
             <InputField
               label="Password" value={password} onChangeText={setPassword}
@@ -183,8 +192,9 @@ export default function RegisterScreen({ navigation }) {
               secureTextEntry showToggle showing={showPassword}
               onToggle={() => setShowPassword(v => !v)}
               inputRef={passRef} nextRef={confirmRef}
-              focused={passFocused}
-              onFocus={() => setPassFocused(true)} onBlur={() => setPassFocused(false)}
+              focused={passFocused} editable={!loading}
+              onFocus={() => setPassFocused(true)}
+              onBlur={() => setPassFocused(false)}
             />
             <InputField
               label="Confirm Password" value={confirmPass} onChangeText={setConfirmPass}
@@ -192,8 +202,9 @@ export default function RegisterScreen({ navigation }) {
               secureTextEntry showToggle showing={showConfirm}
               onToggle={() => setShowConfirm(v => !v)}
               inputRef={confirmRef} returnKeyType="done"
-              focused={confirmFocused}
-              onFocus={() => setConfirmFocused(true)} onBlur={() => setConfirmFocused(false)}
+              focused={confirmFocused} editable={!loading}
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
             />
 
             {/* Password strength */}
@@ -262,26 +273,21 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#1565C0' },
 
-  /* Decorative circles */
   circle1: {
     position: 'absolute', width: 320, height: 320, borderRadius: 160,
-    backgroundColor: 'rgba(0,188,212,0.22)',
-    top: -100, right: -100,
+    backgroundColor: 'rgba(0,188,212,0.22)', top: -100, right: -100,
   },
   circle2: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(0,188,212,0.15)',
-    top: 60, right: 40,
+    backgroundColor: 'rgba(0,188,212,0.15)', top: 60, right: 40,
   },
   circle3: {
     position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    bottom: -40, left: -40,
+    backgroundColor: 'rgba(255,255,255,0.06)', bottom: -40, left: -40,
   },
 
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 56, paddingBottom: 36 },
 
-  /* Brand */
   brandSection: { alignItems: 'center', marginBottom: 30 },
   glowRing: {
     position: 'absolute', top: -14,
@@ -313,7 +319,6 @@ const styles = StyleSheet.create({
   brandName: { fontSize: 36, fontWeight: '700', color: '#fff', letterSpacing: 0.4, marginBottom: 5 },
   brandSub:  { fontSize: 11, color: 'rgba(255,255,255,0.6)', letterSpacing: 3.5 },
 
-  /* Card */
   card: {
     width: '100%', borderRadius: 24, overflow: 'hidden', backgroundColor: '#fff',
     shadowColor: '#000', shadowOffset: { width: 0, height: 16 },
@@ -324,7 +329,6 @@ const styles = StyleSheet.create({
   cardTitle:    { fontSize: 22, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
   cardSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 24 },
 
-  /* Inputs */
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 8, letterSpacing: 0.3 },
   inputRow: {
@@ -340,7 +344,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, paddingVertical: 14, fontSize: 14, color: '#1e293b' },
 
-  /* Strength */
   strengthRow:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -8, marginBottom: 14 },
   strengthBar:    { flex: 1, height: 3, borderRadius: 2, backgroundColor: '#e2e8f0' },
   strengthWeak:   { backgroundColor: '#ef4444' },
@@ -348,7 +351,6 @@ const styles = StyleSheet.create({
   strengthStrong: { backgroundColor: '#10b981' },
   strengthLabel:  { fontSize: 10, color: '#94a3b8', marginLeft: 4, fontWeight: '600' },
 
-  /* Button */
   signInBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: '#1565C0', paddingVertical: 16, borderRadius: 14, marginTop: 4,

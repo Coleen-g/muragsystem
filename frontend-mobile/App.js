@@ -4,16 +4,20 @@ import AppNavigator from './src/navigation/AppNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import useAuthStore from './src/store/authStore';
 import useThemeStore from './src/store/themeStore';
+import usePushNotifications from './src/hooks/usePushNotifications';
 
 export default function App() {
   const [splashDone, setSplashDone] = useState(false);
-  const { loadAuth } = useAuthStore();
-  const { loadTheme } = useThemeStore(); 
+  const { loadAuth, user } = useAuthStore();
+  const { loadTheme } = useThemeStore();
 
   useEffect(() => {
     loadAuth();
     loadTheme();
   }, []);
+
+  // Register for push notifications only when patient is logged in
+  usePushNotifications(!!user);
 
   return (
     <>

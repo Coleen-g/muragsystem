@@ -26,6 +26,23 @@ export default function Login() {
     }
   };
 
+  // Reusable shield logo SVG
+  const ShieldLogo = ({ size = 60 }) => (
+    <svg width={size} height={size} viewBox="255 55 170 250" xmlns="http://www.w3.org/2000/svg">
+      <path d="M340 55 L425 88 L425 202 Q425 268 340 300 Q255 268 255 202 L255 88 Z" fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+      <path d="M340 72 L410 100 L410 200 Q410 254 340 282 Q270 254 270 200 L270 100 Z" fill="rgba(255,255,255,0.7)" stroke="none"/>
+      <rect x="322" y="118" width="36" height="100" rx="6" fill="#1a5fa8" opacity="0.95"/>
+      <rect x="292" y="148" width="96" height="36" rx="6" fill="#1a5fa8" opacity="0.95"/>
+      <rect x="335" y="128" width="10" height="60" rx="3" fill="white"/>
+      <rect x="330" y="155" width="20" height="24" rx="2" fill="#5ba4e6"/>
+      <line x1="340" y1="188" x2="340" y2="200" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="302" cy="158" r="5" fill="white"/>
+      <circle cx="378" cy="158" r="5" fill="white"/>
+      <circle cx="302" cy="172" r="5" fill="white"/>
+      <circle cx="378" cy="172" r="5" fill="white"/>
+    </svg>
+  );
+
   return (
     <div className="min-h-screen flex">
 
@@ -49,20 +66,15 @@ export default function Login() {
           style={{ background: 'rgba(255,255,255,0.08)' }} />
 
         <div className="relative z-10 max-w-lg">
-          {/* Brand Header */}
+          {/* ── Brand Header with iRabiesCare Logo ── */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 border-white/25"
-              style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}
-            >
-              <svg className="w-9 h-9" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L19 5V10C19 15 15.5 19.7 12 22C8.5 19.7 5 15 5 10V5L12 2Z"
-                  fill="white" opacity="0.95" />
-                <path d="M12 8V14M9 11H15" stroke="#1976D2" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
+            <ShieldLogo size={70} />
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Rabies Care</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                <span className="italic text-red-300">i</span>
+                <span className="text-white">Rabies</span>
+                <span className="text-blue-200">Care</span>
+              </h2>
               <p className="text-sm opacity-90 font-medium">Management System</p>
             </div>
           </div>
@@ -122,7 +134,7 @@ export default function Login() {
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
               >
-                <div className="w-13 h-13 w-12 h-12 rounded-xl flex items-center justify-center border border-white/20 flex-shrink-0"
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center border border-white/20 flex-shrink-0"
                   style={{ background: 'rgba(255,255,255,0.15)' }}
                 >
                   {f.icon}
@@ -150,11 +162,29 @@ export default function Login() {
       <aside className="w-full lg:w-[560px] flex items-center justify-center bg-white px-8 py-12">
         <div className="w-full max-w-md">
 
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">Admin Login</h1>
-            <p className="text-gray-500 text-sm">Enter your credentials to access the system</p>
+          {/* ── Logo at top of login form ── */}
+          <div className="flex flex-col items-center mb-8">
+            <svg width="80" height="80" viewBox="255 55 170 250" xmlns="http://www.w3.org/2000/svg">
+              <path d="M340 55 L425 88 L425 202 Q425 268 340 300 Q255 268 255 202 L255 88 Z" fill="#1a5fa8" stroke="#0e3d6e" strokeWidth="2"/>
+              <path d="M340 72 L410 100 L410 200 Q410 254 340 282 Q270 254 270 200 L270 100 Z" fill="#2272c3" stroke="none"/>
+              <rect x="322" y="118" width="36" height="100" rx="6" fill="white" opacity="0.95"/>
+              <rect x="292" y="148" width="96" height="36" rx="6" fill="white" opacity="0.95"/>
+              <rect x="335" y="128" width="10" height="60" rx="3" fill="#1a5fa8"/>
+              <rect x="330" y="155" width="20" height="24" rx="2" fill="#5ba4e6"/>
+              <line x1="340" y1="188" x2="340" y2="200" stroke="#1a5fa8" strokeWidth="2.5" strokeLinecap="round"/>
+              <circle cx="302" cy="158" r="5" fill="#1a5fa8"/>
+              <circle cx="378" cy="158" r="5" fill="#1a5fa8"/>
+              <circle cx="302" cy="172" r="5" fill="#1a5fa8"/>
+              <circle cx="378" cy="172" r="5" fill="#1a5fa8"/>
+            </svg>
+            <h2 className="text-2xl font-bold mt-2">
+              <span className="italic text-red-500">i</span>
+              <span className="text-blue-800">Rabies</span>
+              <span className="text-blue-500">Care</span>
+            </h2>
           </div>
+
+         
 
           {/* Error Message */}
           {error && (
@@ -230,8 +260,6 @@ export default function Login() {
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-
-              {/* ✅ Navigates to ForgotPassword page */}
               <button
                 type="button"
                 onClick={() => navigate('/forgot-password')}
@@ -286,7 +314,7 @@ export default function Login() {
 
           {/* Footer */}
           <div className="mt-6 text-center text-xs text-gray-400 leading-relaxed">
-            <p>© 2026 Rabies Care Management System</p>
+            <p>© 2026 iRabiesCare Management System</p>
             <p className="mt-1">For authorized personnel only</p>
           </div>
         </div>

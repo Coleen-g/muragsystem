@@ -18,7 +18,7 @@ import EditVaccination from './pages/EditVaccination';
 import Animal    from './pages/Animal';
 import AddAnimal from './pages/AddAnimal';
 import VaccinationCoverage from './pages/VaccinationCoverage';
-import Schedule from './pages/Schedule';
+
 import ReportAndAnalytics from './pages/ReportAndAnalytics';  
 import UserManagement from './pages/UserManagement';
 import ForgotPassword from './pages/ForgotPassword';
@@ -101,11 +101,7 @@ export default function App() {
           <PrivateRoute><MainLayout><AddAnimal /></MainLayout></PrivateRoute>
         } />
 
-        {/* SMS Reminders & Schedules */}
-        <Route path="/schedule" element={
-          <PrivateRoute><MainLayout><Schedule /></MainLayout></PrivateRoute>
-        } />
-
+      
         {/* Vaccination Coverage Monitoring */}
         <Route path="/coverage" element={
           <PrivateRoute><MainLayout><VaccinationCoverage /></MainLayout></PrivateRoute>

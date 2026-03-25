@@ -323,7 +323,7 @@ export default function Dashboard() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {['Case ID', 'Patient', 'Category', 'Status', 'Date'].map(h => (
+                    {['Case ID', 'Patient', 'Exposure Type', 'Status', 'Date'].map(h => (
                       <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -333,7 +333,12 @@ export default function Dashboard() {
                     <tr key={c.id} className={`border-b border-slate-100 hover:bg-blue-50/30 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
                       <td className="px-4 py-3"><span className="font-bold text-blue-600 text-xs bg-blue-50 px-2 py-0.5 rounded-md">#{c.caseId}</span></td>
                       <td className="px-4 py-3"><p className="font-semibold text-slate-800 text-xs whitespace-nowrap">{c.fullName || c.patientName}</p></td>
-                      <td className="px-4 py-3"><CatBadge cat={c.woundCategory || c.exposureCategory} /></td>
+                            <td className="px-4 py-3">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold text-white bg-indigo-500 shadow-sm whitespace-nowrap">
+          <span className="w-1 h-1 rounded-full bg-white/70" />
+          {c.exposureType || '—'}
+        </span>
+      </td>
                       <td className="px-4 py-3"><StatusBadge status={c.caseStatus || c.status} /></td>
                       <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fmt(c.dateOfExposure || c.createdAt)}</td>
                     </tr>

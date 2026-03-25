@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668782473478",
+    "project_id": "systemni",
+    "storage_bucket": "systemni.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668782473478:android:2f967555a1486d5466ee87",
+        "android_client_info": {
+          "package_name": "com.coleen.frontendmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQgFkNTFwWSAd4yNPqrPCSEwljgvLqxkI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

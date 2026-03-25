@@ -122,29 +122,34 @@ export default function VaccinationCoverage() {
 
 
   // ── Derived data ─────────────────────────────────────────────────────────────
-// ✅ Change patientId → patientRef
 const vacByPatient = {};
-vaccinations.forEach(v => { if (v.patientRef) vacByPatient[v.patientRef] = v; });
+vaccinations.forEach(v => {
+  const key = v.patientRef?._id || v.patientRef;
+  if (key) vacByPatient[String(key)] = v;
+});
 
-  // Enrich patients with their vaccination record
-  const enriched = patients.map(p => ({
+// Enrich patients with their vaccination record
+const enriched = patients.map(p => {
+  const patientKey = String(p.id || p._id);
+  const vaccination = vacByPatient[patientKey] || null;
+  return {
     ...p,
-    vaccination: vacByPatient[p.id ] || null,
-    compliance: getComplianceStatus(vacByPatient[p.id ] || null),
-  }));
+    vaccination,
+    compliance: getComplianceStatus(vaccination),
+  };
+});
 
-  const completeCount    = enriched.filter(p => p.compliance === 'Complete').length;
-  const incompleteCount  = enriched.filter(p => p.compliance === 'Incomplete').length;
-  const notStartedCount  = enriched.filter(p => p.compliance === 'Not Started').length;
-  const noRecordCount    = enriched.filter(p => p.compliance === 'No Record').length;
-  const totalPatients    = enriched.length;
-  const complianceRate   = totalPatients > 0 ? Math.round((completeCount / totalPatients) * 100) : 0;
+const completeCount    = enriched.filter(p => p.compliance === 'Complete').length;
+const incompleteCount  = enriched.filter(p => p.compliance === 'Incomplete').length;
+const notStartedCount  = enriched.filter(p => p.compliance === 'Not Started').length;
+const noRecordCount    = enriched.filter(p => p.compliance === 'No Record').length;
+const totalPatients    = enriched.length;
+const complianceRate   = totalPatients > 0 ? Math.round((completeCount / totalPatients) * 100) : 0;
 
-  // Incomplete cases — patients with partial doses
-  const incompleteCases = enriched.filter(p =>
-    p.compliance === 'Incomplete' || p.compliance === 'Not Started'
-  );
-
+// Incomplete cases — patients with partial doses
+const incompleteCases = enriched.filter(p =>
+  p.compliance === 'Incomplete' || p.compliance === 'Not Started'
+);
   // Municipality trends — group cases by address
   const muniMap = {};
   cases.forEach(c => {
