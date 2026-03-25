@@ -1,26 +1,14 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.warn('EMAIL_USER or EMAIL_PASS not set. Forgot password email will not be sent.');
-}
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,          // ✅ changed from default 587 to 465
-  secure: true,       // ✅ must be true for port 465
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async ({ to, subject, html }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email credentials not configured. Set EMAIL_USER and EMAIL_PASS in .env');
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured in .env');
   }
 
-  await transporter.sendMail({
-    from: `"iRabiesCare" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'iRabiesCare <onboarding@resend.dev>',
     to,
     subject,
     html,
