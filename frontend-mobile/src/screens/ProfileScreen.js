@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, memo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, StatusBar, Modal,
@@ -15,7 +15,7 @@ import { useColors } from '../theme/colors';
 import apiClient from '../api/client';
 
 /* ── Menu Item ── */
-const MenuItem = ({ icon: Icon, label, sub, color = '#1565C0', onPress, danger, colors }) => (
+const MenuItem = memo(({ icon: Icon, label, sub, color = '#1565C0', onPress, danger, colors }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.menuIcon, { backgroundColor: danger ? '#fef2f2' : color + '18' }]}>
       <Icon color={danger ? '#ef4444' : color} size={19} />
@@ -26,36 +26,112 @@ const MenuItem = ({ icon: Icon, label, sub, color = '#1565C0', onPress, danger, 
     </View>
     <ChevronRight color={danger ? '#fecaca' : colors.border} size={16} />
   </TouchableOpacity>
-);
+));
+
+/* ── Individual Password Field Component (Memoized) ── */
+const PasswordField = memo(({ 
+  label, 
+  value, 
+  onChangeText, 
+  showPassword, 
+  onToggleShow,
+  onSubmitEditing,
+  returnKeyType,
+  inputRef,
+  colors,
+  loading 
+}) => {
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={[styles.fieldLabel, { color: colors.subText }]}>{label}</Text>
+      <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.input }]}>
+        <TextInput
+          ref={inputRef}
+          style={[styles.input, { color: colors.text }]}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!showPassword}
+          placeholder="••••••••"
+          placeholderTextColor={colors.subText}
+          autoCapitalize="none"
+          editable={!loading}
+          onSubmitEditing={onSubmitEditing}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={false}
+        />
+        <TouchableOpacity 
+          onPress={onToggleShow} 
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}>
+          {showPassword ? <EyeOff color={colors.subText} size={18} /> : <Eye color={colors.subText} size={18} />}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
 
 /* ── Change Password Modal ── */
-const ChangePasswordModal = ({ visible, onClose, colors }) => {
+const ChangePasswordModal = memo(({ visible, onClose, colors }) => {
+  // Separate state for each field to avoid re-rendering all fields on every keystroke
   const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword]         = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent]         = useState(false);
-  const [showNew, setShowNew]                 = useState(false);
-  const [showConfirm, setShowConfirm]         = useState(false);
-  const [loading, setLoading]                 = useState(false);
-  const [error, setError]                     = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  // Refs for input fields
+  const currentRef = useRef(null);
+  const newRef = useRef(null);
+  const confirmRef = useRef(null);
 
-  const reset = () => {
-    setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    setError(''); setShowCurrent(false); setShowNew(false); setShowConfirm(false);
-  };
-
-  const handleClose = () => { reset(); onClose(); };
-
-  const handleSubmit = async () => {
+  const reset = useCallback(() => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setError('');
-    if (!currentPassword) return setError('Please enter your current password.');
-    if (!newPassword)     return setError('Please enter a new password.');
-    if (newPassword.length < 6) return setError('New password must be at least 6 characters.');
-    if (newPassword !== confirmPassword) return setError('Passwords do not match.');
+    setShowCurrent(false);
+    setShowNew(false);
+    setShowConfirm(false);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    reset();
+    onClose();
+  }, [reset, onClose]);
+
+  const handleSubmit = useCallback(async () => {
+    setError('');
+    
+    if (!currentPassword) {
+      setError('Please enter your current password.');
+      currentRef.current?.focus();
+      return;
+    }
+    if (!newPassword) {
+      setError('Please enter a new password.');
+      newRef.current?.focus();
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      newRef.current?.focus();
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      confirmRef.current?.focus();
+      return;
+    }
 
     setLoading(true);
     try {
-      await apiClient.put('/auth/change-password', { currentPassword, newPassword });
+      await apiClient.put('/auth/change-password', { 
+        currentPassword, 
+        newPassword 
+      });
       reset();
       onClose();
       Alert.alert('Success', 'Your password has been updated successfully.');
@@ -64,36 +140,47 @@ const ChangePasswordModal = ({ visible, onClose, colors }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPassword, newPassword, confirmPassword, reset, onClose]);
 
-  const PasswordField = ({ label, value, onChangeText, show, onToggle }) => (
-    <View style={styles.fieldWrap}>
-      <Text style={[styles.fieldLabel, { color: colors.subText }]}>{label}</Text>
-      <View style={[styles.inputRow, { borderColor: colors.border, backgroundColor: colors.input }]}>
-        <TextInput
-          style={[styles.input, { color: colors.text }]}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={!show}
-          placeholder="••••••••"
-          placeholderTextColor={colors.subText}
-          autoCapitalize="none"
-          editable={!loading}
-        />
-        <TouchableOpacity onPress={onToggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          {show ? <EyeOff color={colors.subText} size={18} /> : <Eye color={colors.subText} size={18} />}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const handleCurrentSubmit = useCallback(() => {
+    newRef.current?.focus();
+  }, []);
+
+  const handleNewSubmit = useCallback(() => {
+    confirmRef.current?.focus();
+  }, []);
+
+  const handleConfirmSubmit = useCallback(() => {
+    handleSubmit();
+  }, [handleSubmit]);
+
+  // Memoized callbacks for password changes
+  const onCurrentChange = useCallback((text) => {
+    setCurrentPassword(text);
+  }, []);
+
+  const onNewChange = useCallback((text) => {
+    setNewPassword(text);
+  }, []);
+
+  const onConfirmChange = useCallback((text) => {
+    setConfirmPassword(text);
+  }, []);
+
+  if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      transparent 
+      onRequestClose={handleClose}
+      statusBarTranslucent>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
-
           <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
 
           <View style={styles.modalHeader}>
@@ -106,24 +193,59 @@ const ChangePasswordModal = ({ visible, onClose, colors }) => {
             </TouchableOpacity>
           </View>
 
-          {!!error && (
+          {error ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
-          )}
+          ) : null}
 
-          <PasswordField label="Current Password" value={currentPassword} onChangeText={setCurrentPassword} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />
-          <PasswordField label="New Password" value={newPassword} onChangeText={setNewPassword} show={showNew} onToggle={() => setShowNew(v => !v)} />
-          <PasswordField label="Confirm New Password" value={confirmPassword} onChangeText={setConfirmPassword} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />
+          <PasswordField
+            label="Current Password"
+            value={currentPassword}
+            onChangeText={onCurrentChange}
+            showPassword={showCurrent}
+            onToggleShow={() => setShowCurrent(prev => !prev)}
+            onSubmitEditing={handleCurrentSubmit}
+            returnKeyType="next"
+            inputRef={currentRef}
+            colors={colors}
+            loading={loading}
+          />
+          
+          <PasswordField
+            label="New Password"
+            value={newPassword}
+            onChangeText={onNewChange}
+            showPassword={showNew}
+            onToggleShow={() => setShowNew(prev => !prev)}
+            onSubmitEditing={handleNewSubmit}
+            returnKeyType="next"
+            inputRef={newRef}
+            colors={colors}
+            loading={loading}
+          />
+          
+          <PasswordField
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChangeText={onConfirmChange}
+            showPassword={showConfirm}
+            onToggleShow={() => setShowConfirm(prev => !prev)}
+            onSubmitEditing={handleConfirmSubmit}
+            returnKeyType="done"
+            inputRef={confirmRef}
+            colors={colors}
+            loading={loading}
+          />
 
-          {newPassword && confirmPassword && (
+          {newPassword && confirmPassword ? (
             <Text style={[styles.matchText, { color: newPassword === confirmPassword ? '#16a34a' : '#dc2626' }]}>
               {newPassword === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
             </Text>
-          )}
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.submitBtn, loading && { opacity: 0.6 }]}
+            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.85}>
@@ -133,23 +255,30 @@ const ChangePasswordModal = ({ visible, onClose, colors }) => {
           <TouchableOpacity onPress={handleClose} style={styles.cancelBtn}>
             <Text style={[styles.cancelText, { color: colors.subText }]}>Cancel</Text>
           </TouchableOpacity>
-
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
-};
+});
 
 /* ── Main Screen ── */
 export default function ProfileScreen({ navigation }) {
-  const { user, logout }       = useAuthStore();
-  const { dark, toggleTheme }  = useThemeStore();
-  const colors                 = useColors(dark);
+  const { user, logout } = useAuthStore();
+  const { dark, toggleTheme } = useThemeStore();
+  const colors = useColors(dark);
   const [changePassVisible, setChangePassVisible] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
-  };
+  }, [logout]);
+
+  const handleChangePassword = useCallback(() => {
+    setChangePassVisible(true);
+  }, []);
+
+  const handleAbout = useCallback(() => {
+    Alert.alert('iRabiesCare', 'Rabies Prevention & Case Management System\nDepartment of Health\nVersion 1.0');
+  }, []);
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'P';
 
@@ -178,8 +307,11 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-
+      <ScrollView 
+        contentContainerStyle={styles.body} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        
         {/* Account info card */}
         <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
           <View style={styles.infoRow}>
@@ -216,7 +348,7 @@ export default function ProfileScreen({ navigation }) {
 
         <Text style={[styles.sectionLabel, { color: colors.subText }]}>ACCOUNT</Text>
         <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
-          <MenuItem colors={colors} icon={Lock} label="Change Password" sub="Update your account password" color="#8b5cf6" onPress={() => setChangePassVisible(true)} />
+          <MenuItem colors={colors} icon={Lock} label="Change Password" sub="Update your account password" color="#8b5cf6" onPress={handleChangePassword} />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <MenuItem
             colors={colors}
@@ -224,7 +356,7 @@ export default function ProfileScreen({ navigation }) {
             label="About iRabiesCare"
             sub="Rabies Prevention Program v1.0"
             color="#64748b"
-            onPress={() => Alert.alert('iRabiesCare', 'Rabies Prevention & Case Management System\nDepartment of Health\nVersion 1.0')}
+            onPress={handleAbout}
           />
         </View>
 
@@ -327,6 +459,7 @@ const styles = StyleSheet.create({
     shadowColor: '#1565C0', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
+  submitBtnDisabled: { opacity: 0.6 },
   submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   cancelBtn:  { alignItems: 'center', paddingVertical: 14 },
   cancelText: { fontSize: 14, fontWeight: '600' },

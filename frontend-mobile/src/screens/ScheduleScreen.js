@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  ActivityIndicator, RefreshControl, StatusBar,
+  TouchableOpacity, ActivityIndicator, RefreshControl, StatusBar,
 } from 'react-native';
 import {
-  Syringe, Calendar, CheckCircle, Clock, AlertCircle, Circle,
+  Syringe, Calendar, ChevronLeft, CheckCircle, Clock, AlertCircle, Circle,
 } from 'lucide-react-native';
 import useThemeStore from '../store/themeStore';
 import { useColors } from '../theme/colors';
@@ -34,9 +34,11 @@ const formatDate = (date) =>
     weekday: 'short', month: 'short', day: '2-digit', year: 'numeric',
   }) : null;
 
-export default function ScheduleScreen() {
+export default function ScheduleScreen({ route, navigation }) {
   const { dark } = useThemeStore();
   const colors = useColors(dark);
+
+  const { vaccinationId, caseId, patientName } = route?.params || {};
 
   const [vaccinations, setVaccinations] = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -45,16 +47,28 @@ export default function ScheduleScreen() {
   const fetchData = useCallback(async () => {
     try {
       const res = await apiClient.get('/vaccinations/my');
-      setVaccinations(res.data || []);
+      let data = res.data || [];
+
+      // Filter by specific vaccination if navigated from VaccinationScreen
+      if (vaccinationId) {
+        data = data.filter(v => String(v.id || v._id) === String(vaccinationId));
+      }
+
+      // Filter by caseId if provided (so viewing one case schedule does not mix others)
+      else if (caseId) {
+        data = data.filter(v => String(v.caseId) === String(caseId));
+      }
+
+      setVaccinations(data);
     } catch (e) {
       console.log('ScheduleScreen error:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [vaccinationId, caseId]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   const allDoses = vaccinations.flatMap(v =>
@@ -67,7 +81,7 @@ export default function ScheduleScreen() {
       caseId:       v.caseId,
       patientName:  v.patientName,
       vaccineBrand: v.vaccineBrand,
-      vaccinationId: v.id,
+      vaccinationId: v._id,
       status:       v.status,
     }))
   ).filter(d =>
@@ -83,18 +97,25 @@ export default function ScheduleScreen() {
   const missedCount   = allDoses.filter(d => d.missed && !d.administered).length;
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1565C0" />
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.header }]}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={styles.headerInner}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ChevronLeft color="#fff" size={22} />
+          </TouchableOpacity>
           <Calendar color="#fff" size={22} />
           <View>
-            <Text style={styles.headerTitle}>Vaccination Schedule</Text>
-            <Text style={styles.headerSub}>Your full PEP dose timeline</Text>
+            <Text style={styles.headerTitle}>
+              {patientName ? `${patientName}'s Schedule` : 'Vaccination Schedule'}
+            </Text>
+            <Text style={styles.headerSub}>
+              {caseId ? `Case #${caseId}` : 'Your full PEP dose timeline'}
+            </Text>
           </View>
         </View>
       </View>
@@ -171,6 +192,7 @@ export default function ScheduleScreen() {
 
                     <View style={[
                       styles.doseCard,
+                      { backgroundColor: colors.card },
                       isDone    && styles.doseCardDone,
                       isMissed  && styles.doseCardMissed,
                       isToday   && styles.doseCardToday,
@@ -180,6 +202,7 @@ export default function ScheduleScreen() {
                           <View style={styles.doseLabelRow}>
                             <Text style={[
                               styles.doseLabel,
+                              { color: colors.text },
                               isDone   && { color: '#94a3b8' },
                               isMissed && { color: '#ef4444' },
                             ]}>
@@ -206,7 +229,7 @@ export default function ScheduleScreen() {
                               </View>
                             )}
                           </View>
-                          <Text style={styles.doseCaseName}>
+                          <Text style={[styles.doseCaseName, { color: colors.subText }] }>
                             Case #{d.caseId} · {d.patientName}
                           </Text>
                           <Text style={styles.doseBrand}>{d.vaccineBrand}</Text>
@@ -270,6 +293,7 @@ const styles = StyleSheet.create({
   headerInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
+  backBtn:     { marginRight: 10, padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.16)' },
 
   content:    { paddingHorizontal: 16, paddingTop: 18 },
   summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 20, flexWrap: 'wrap' },

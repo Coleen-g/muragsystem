@@ -22,7 +22,7 @@ export default function Welcome() {
 
       {/* Floating shapes */}
       <div
-        className="absolute -top-36 -right-36 w-96 h-96 rounded-full bg-white/8 animate-[float_20s_ease-in-out_infinite]"
+        className="absolute -top-36 -right-36 w-96 h-96 rounded-full animate-[float_20s_ease-in-out_infinite]"
         style={{ background: 'rgba(255,255,255,0.07)' }}
       />
       <div
@@ -44,37 +44,43 @@ export default function Welcome() {
           }`}
         >
           <div className="relative flex items-center justify-center">
-            {/* Shield */}
-            <div
-              className="w-40 h-40 rounded-full flex items-center justify-center border-2 border-white/30 shadow-2xl"
-              style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <svg className="w-24 h-24 drop-shadow-md" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2L19 5V10C19 15 15.5 19.7 12 22C8.5 19.7 5 15 5 10V5L12 2Z"
-                  fill="white"
-                  opacity="0.95"
-                />
-                <path
-                  d="M12 8V14M9 11H15"
-                  stroke="#1976D2"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            {/* Medical badge */}
-            <div className="absolute bottom-2 right-2 w-14 h-14 rounded-full flex items-center justify-center border-4 border-white/90 shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #FF5252, #F44336)' }}
-            >
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none">
-                <path d="M13 3H11V11H3V13H11V21H13V13H21V11H13V3Z" fill="white" />
-              </svg>
-            </div>
+          {/* Logo Section */}
+<div
+  className={`flex flex-col items-center transition-all duration-700 ease-out ${
+    visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+  }`}
+>
+  {/* iRabiesCare SVG Logo - no circle */}
+  <svg width="220" height="220" viewBox="255 55 170 250" xmlns="http://www.w3.org/2000/svg">
+    {/* Shield background */}
+    <path d="M340 55 L425 88 L425 202 Q425 268 340 300 Q255 268 255 202 L255 88 Z" fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+    {/* Shield inner */}
+    <path d="M340 72 L410 100 L410 200 Q410 254 340 282 Q270 254 270 200 L270 100 Z" fill="rgba(255,255,255,0.7)" stroke="none"/>
+    {/* Cross symbol */}
+    <rect x="322" y="118" width="36" height="100" rx="6" fill="#1a5fa8" opacity="0.95"/>
+    <rect x="292" y="148" width="96" height="36" rx="6" fill="#1a5fa8" opacity="0.95"/>
+    {/* Syringe on cross */}
+    <rect x="335" y="128" width="10" height="60" rx="3" fill="white"/>
+    <rect x="330" y="155" width="20" height="24" rx="2" fill="#5ba4e6"/>
+    <line x1="340" y1="188" x2="340" y2="200" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Paw prints */}
+    <circle cx="302" cy="158" r="5" fill="white"/>
+    <circle cx="378" cy="158" r="5" fill="white"/>
+    <circle cx="302" cy="172" r="5" fill="white"/>
+    <circle cx="378" cy="172" r="5" fill="white"/>
+  </svg>
+
+  
+</div>
+</div>
+
+          {/* iRabiesCare name under logo */}
+          <div className="mt-4 text-center">
+            <h2 className="text-3xl font-bold tracking-tight drop-shadow">
+              <span className="italic text-red-400">i</span>
+              <span className="text-white">Rabies</span>
+              <span className="text-blue-200">Care</span>
+            </h2>
           </div>
         </div>
 
@@ -86,20 +92,8 @@ export default function Welcome() {
         >
           {/* Title Block */}
           <div className="text-center lg:text-left mb-8">
-            <h1
-              className="text-5xl lg:text-6xl font-bold tracking-tight mb-3"
-              style={{
-                background: 'linear-gradient(to bottom, #fff, rgba(255,255,255,0.88))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: 'none',
-              }}
-            >
-              Rabies Care
-            </h1>
             <p className="uppercase tracking-widest text-xs font-semibold opacity-90 mb-5">
-              Case Management System
+              Case Management System and Vaccination Monitoring for Rabies Prevention in Bohol
             </p>
             <div className="w-20 h-1 rounded-full mx-auto lg:mx-0 mb-5"
               style={{ background: 'linear-gradient(90deg, transparent, #fff, transparent)', opacity: 0.7 }}
@@ -190,18 +184,13 @@ export default function Welcome() {
           className="group relative w-full max-w-md h-16 rounded-full overflow-hidden shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-blue-900/40 active:translate-y-0"
           style={{ background: 'linear-gradient(135deg, #ffffff, #f0f4f8)' }}
         >
-          {/* Shimmer effect */}
           <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(33,150,243,0.12), transparent)' }}
           />
           <span className="relative flex items-center justify-center gap-3 text-blue-700 font-bold text-lg tracking-wide">
             Get Started
-            <svg
-              className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1"
-              viewBox="0 0 24 24" fill="none"
-            >
-              <path d="M5 12H19M19 12L12 5M19 12L12 19"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
         </button>
@@ -216,10 +205,9 @@ export default function Welcome() {
           </svg>
           <span className="text-sm font-semibold">Department of Health</span>
         </div>
-        <p className="text-xs opacity-60 mt-2 font-medium">Rabies Prevention Program v1.0</p>
+        <p className="text-xs opacity-60 mt-2 font-medium">iRabiesCare — Rabies Prevention Program v1.0</p>
       </div>
 
-      {/* Float animation keyframes via style tag */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translate(0, 0) scale(1); }

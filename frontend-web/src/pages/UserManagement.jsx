@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Trash2, Loader2, RefreshCw,
-  X, Save, Eye, EyeOff, ChevronDown,
+  X, Save, Eye, EyeOff,
   User, Mail, Lock, Shield, Users, UserCheck, AlertCircle,
-  CheckCircle, Pencil,
+  CheckCircle, Pencil, Wifi, WifiOff,
 } from 'lucide-react';
 import apiClient from '../api/client';
 
@@ -23,8 +23,7 @@ const SLIDE_IN = `
   }
 `;
 
-const inputCls    = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-white";
-const selectCls   = `${inputCls} appearance-none cursor-pointer`;
+const inputCls  = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-white";
 
 /* ─────────────────────────────────────
    Atoms
@@ -35,6 +34,29 @@ const RoleBadge = ({ role }) => {
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${c.bg} ${c.text} ${c.border}`}>
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.dot }} />
       {c.label}
+    </span>
+  );
+};
+
+const StatusBadge = ({ isOnline, lastSeen }) => {
+  const timeAgo = (date) => {
+    if (!date) return 'Never';
+    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (diff < 60)    return 'Just now';
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+  return isOnline ? (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+      Online
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-500 border-slate-200"
+      title={lastSeen ? `Last seen: ${new Date(lastSeen).toLocaleString()}` : ''}>
+      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+      {lastSeen ? timeAgo(lastSeen) : 'Inactive'}
     </span>
   );
 };
@@ -66,10 +88,10 @@ const UserPanel = ({ editUser = null, onClose, onSaved }) => {
   const isEdit = !!editUser;
 
   const [form, setForm] = useState({
-    name:     editUser?.name     || '',
-    email:    editUser?.email    || '',
-    role:     editUser?.role     || 'staff',
-    password: '',
+    name:            editUser?.name  || '',
+    email:           editUser?.email || '',
+    role:            editUser?.role  || 'staff',
+    password:        '',
     confirmPassword: '',
   });
   const [showPass, setShowPass]       = useState(false);
@@ -178,8 +200,8 @@ const UserPanel = ({ editUser = null, onClose, onSaved }) => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'staff', label: 'Health Staff', desc: 'Can manage cases & patients', icon: UserCheck, color: 'border-blue-400 bg-blue-50 text-blue-700' },
-                { value: 'admin', label: 'Admin',        desc: 'Full system access',          icon: Shield,    color: 'border-purple-400 bg-purple-50 text-purple-700' },
+                { value: 'staff', label: 'Health Staff', desc: 'Manage cases & patients', icon: UserCheck, color: 'border-blue-400 bg-blue-50 text-blue-700' },
+                { value: 'admin', label: 'Admin',        desc: 'Full system access',       icon: Shield,    color: 'border-purple-400 bg-purple-50 text-purple-700' },
               ].map(({ value, label, desc, icon: Icon, color }) => (
                 <button key={value} type="button" onClick={() => set('role')(value)}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${form.role === value ? color : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
@@ -226,7 +248,6 @@ const UserPanel = ({ editUser = null, onClose, onSaved }) => {
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {/* Match indicator */}
                 {form.password && form.confirmPassword && (
                   <p className={`text-[11px] mt-1 flex items-center gap-1 ${form.password === form.confirmPassword ? 'text-emerald-600' : 'text-red-500'}`}>
                     {form.password === form.confirmPassword
@@ -261,15 +282,15 @@ const UserPanel = ({ editUser = null, onClose, onSaved }) => {
    MAIN USER MANAGEMENT PAGE
 ───────────────────────────────────── */
 export default function UserManagement() {
-  const [users, setUsers]       = useState([]);
-  const [search, setSearch]     = useState('');
+  const [users, setUsers]           = useState([]);
+  const [search, setSearch]         = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-  const [addOpen, setAddOpen]   = useState(false);
-  const [editUser, setEditUser] = useState(null);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState(null);
+  const [deleteId, setDeleteId]     = useState(null);
+  const [deleting, setDeleting]     = useState(false);
+  const [addOpen, setAddOpen]       = useState(false);
+  const [editUser, setEditUser]     = useState(null);
 
   const closeAll = () => { setAddOpen(false); setEditUser(null); };
 
@@ -286,6 +307,12 @@ export default function UserManagement() {
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  // Poll every 30 seconds to keep online status fresh
+  useEffect(() => {
+    const interval = setInterval(fetchUsers, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUsers]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') closeAll(); };
@@ -306,23 +333,26 @@ export default function UserManagement() {
     }
   };
 
-  // Filter locally
+  // Filter locally — now includes all roles (admin, staff, user/patient)
   const filtered = users.filter(u => {
     const matchRole   = roleFilter === 'All' || u.role === roleFilter;
     const matchSearch = !search ||
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
-  // Only show admin and staff — not patients
-  }).filter(u => u.role === 'admin' || u.role === 'staff');
+  });
 
   const counts = {
-    total: users.filter(u => u.role === 'admin' || u.role === 'staff').length,
-    admin: users.filter(u => u.role === 'admin').length,
-    staff: users.filter(u => u.role === 'staff').length,
+    total:   users.length,
+    admin:   users.filter(u => u.role === 'admin').length,
+    staff:   users.filter(u => u.role === 'staff').length,
+    patient: users.filter(u => u.role === 'user').length,
+    online:  users.filter(u => u.isOnline).length,
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—';
+  const formatDate = (d) => d
+    ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    : '—';
 
   return (
     <div className="min-h-full bg-slate-100 -m-6 lg:-m-8 p-6 lg:p-8">
@@ -362,7 +392,7 @@ export default function UserManagement() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage admin and health staff accounts</p>
+          <p className="text-sm text-slate-500 mt-1">Manage all users — admins, health staff, and patients</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchUsers} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 shadow-sm">
@@ -375,12 +405,13 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Stat Cards — now 4 columns */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Staff',   value: counts.total, icon: Users,     gradient: 'from-blue-600 to-blue-500',     iconBg: 'bg-blue-700/40' },
-          { label: 'Admins',        value: counts.admin, icon: Shield,    gradient: 'from-purple-600 to-purple-500', iconBg: 'bg-purple-700/40' },
-          { label: 'Health Staff',  value: counts.staff, icon: UserCheck, gradient: 'from-indigo-600 to-indigo-500', iconBg: 'bg-indigo-700/40' },
+          { label: 'Total Users',  value: counts.total,   icon: Users,     gradient: 'from-blue-600 to-blue-500',     iconBg: 'bg-blue-700/40'   },
+          { label: 'Admins',       value: counts.admin,   icon: Shield,    gradient: 'from-purple-600 to-purple-500', iconBg: 'bg-purple-700/40' },
+          { label: 'Health Staff', value: counts.staff,   icon: UserCheck, gradient: 'from-indigo-600 to-indigo-500', iconBg: 'bg-indigo-700/40' },
+          { label: 'Patients',     value: counts.patient, icon: User,      gradient: 'from-slate-600 to-slate-500',   iconBg: 'bg-slate-700/40'  },
         ].map(({ label, value, icon: Icon, gradient, iconBg }) => (
           <div key={label} className={`bg-gradient-to-br ${gradient} rounded-2xl p-6 text-white shadow-sm`}>
             <div className="flex items-start justify-between">
@@ -409,37 +440,42 @@ export default function UserManagement() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-600">Role:</span>
-            {['All', 'admin', 'staff'].map(r => (
-              <button key={r} onClick={() => setRoleFilter(r)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${roleFilter === r ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'}`}>
-                {r === 'All' ? 'All' : r === 'admin' ? 'Admin' : 'Health Staff'}
+            {[
+              { value: 'All',   label: 'All'          },
+              { value: 'admin', label: 'Admin'         },
+              { value: 'staff', label: 'Health Staff'  },
+              { value: 'user',  label: 'Patient'       },
+            ].map(({ value, label }) => (
+              <button key={value} onClick={() => setRoleFilter(value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${roleFilter === value ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'}`}>
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table body */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b-2 border-slate-100 bg-slate-50">
-                {['#', 'Name', 'Email', 'Role', 'Date Added', 'Actions'].map(h => (
+                {['#', 'Name', 'Email', 'Role', 'Status', 'Date Added', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-4 text-left text-xs font-bold text-blue-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="py-16 text-center">
+                <tr><td colSpan={7} className="py-16 text-center">
                   <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-400" />
                   <p className="text-sm text-slate-400">Loading users...</p>
                 </td></tr>
               ) : error ? (
-                <tr><td colSpan={6} className="py-16 text-center">
+                <tr><td colSpan={7} className="py-16 text-center">
                   <p className="text-sm text-red-400">{error}</p>
                 </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="py-16 text-center">
+                <tr><td colSpan={7} className="py-16 text-center">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-10" />
                   <p className="text-sm text-slate-400 font-medium">No users found</p>
                 </td></tr>
@@ -456,6 +492,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-500">{u.email}</td>
                   <td className="px-5 py-4"><RoleBadge role={u.role} /></td>
+                  <td className="px-5 py-4"><StatusBadge isOnline={u.isOnline} lastSeen={u.lastSeen} /></td>
                   <td className="px-5 py-4 text-sm text-slate-500 whitespace-nowrap">{formatDate(u.createdAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">

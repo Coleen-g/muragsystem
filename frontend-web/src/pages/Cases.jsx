@@ -9,6 +9,7 @@ import {
 import { getAllCases, deleteCase as deleteCaseAPI, getCaseStats, getCaseById, updateCase, createCase } from '../api/cases';
 import apiClient from '../api/client';
 import useAuthStore from '../store/authStore';
+import { BOHOL_DATA, MUNICIPALITIES } from '../constants/bohol';
 
 /* ─────────────────────────────────────
    Shared configs & constants
@@ -304,6 +305,31 @@ const ViewPanel = ({ caseId, onClose, onEdit }) => {
               </div>
             </div>
 
+            {/* Document */}
+            {data.documentUrl && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2.5 px-5 py-3 bg-slate-50 border-b border-slate-100">
+                  <Upload size={14} className="text-slate-600" />
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Uploaded Document</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <img
+                    src={data.documentUrl}
+                    alt="Wound document"
+                    className="w-full max-h-72 object-cover rounded-xl border border-slate-200"
+                  />
+                  <a
+                    href={data.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    <FileText size={13} /> Open Full Image
+                  </a>
+                </div>
+              </div>
+            )}
+
             <div className="pb-2" />
           </div>
         )}
@@ -468,7 +494,7 @@ const EditPanel = ({ caseId, onClose, onSaved, staffList, user }) => {
                   <IconInput icon={Phone} iconColor="#94a3b8" type="text" value={form.contact} onChange={e => set('contact')(e.target.value)} placeholder="09XX-XXX-XXXX" />
                 </FormField>
                 <FormField label="Email">
-                  <input type="email" value={form.email} onChange={e => set('email')(e.target.value)} placeholder="Optional" className={inputCls} />
+                  <input type="email" value={form.email} onChange={e => set('email')(e.target.value)} placeholder="email@gmail.com" className={inputCls} />
                 </FormField>
                 <div className="col-span-2">
                   <FormField label="Address">
@@ -599,7 +625,10 @@ const EditPanel = ({ caseId, onClose, onSaved, staffList, user }) => {
 ───────────────────────────────────── */
 const ADD_INITIAL = {
   // Personal
-  fullName: '', age: '', sex: '', address: '', contact: '', email: '',
+  firstName: '', middleName: '', lastName: '',
+  fullName: '', dob: '', age: '',
+  sex: '', municipality: '', barangay: '',
+  customAddress: '', address: '', contact: '', email: '',
   // Exposure
   exposureType: '', bodyPartAffected: '',
   dateOfExposure: '', timeOfExposure: '', location: '',
@@ -631,56 +660,92 @@ const AddPanel = ({ onClose, onSaved, staffList }) => {
   };
 
   const handleSubmit = async () => {
-    setError('');
-    if (!form.fullName || !form.sex || !form.address || !form.contact)
-      return setError('Please fill in all required personal fields.');
-    if (!form.exposureType || !form.dateOfExposure || !form.timeOfExposure || !form.location)
-      return setError('Please fill in all exposure fields.');
-    if (!form.animalInvolved || !form.animalStatus)
-      return setError('Please fill in all animal fields.');
-    if (!form.woundBleeding || !form.woundWashed || !form.numberOfWounds)
-      return setError('Please fill in all wound fields.');
-    if (!form.consentTreatment || !form.consentPrivacy)
-      return setError('Patient must agree to both consents.');
-    if (form.createAccount && !form.accountEmail)
-      return setError('Please enter an email for the mobile account.');
-    if (form.createAccount && form.accountPassword.length < 6)
-      return setError('Password must be at least 6 characters.');
+  setError('');
 
-    setSubmitting(true);
-    try {
-      await createCase({
-        fullName:         form.fullName,
-        age:              Number(form.age),
-        sex:              form.sex,
-        address:          form.address,
-        contact:          form.contact,
-        email:            form.email || null,
-        exposureType:     form.exposureType,
-        bodyPartAffected: form.bodyPartAffected || null,
-        dateOfExposure:   form.dateOfExposure,
-        timeOfExposure:   form.timeOfExposure,
-        location:         form.location,
-        animalInvolved:   form.animalInvolved,
-        animalStatus:     form.animalStatus,
-        animalVaccinated: form.animalVaccinated || null,
-        woundBleeding:    form.woundBleeding,
-        woundWashed:      form.woundWashed,
-        numberOfWounds:   parseInt(form.numberOfWounds) || 0,
-        documentUrl:      form.document ? form.document.name : null,
-        createAccount:    form.createAccount,
-        accountEmail:     form.createAccount ? form.accountEmail    : undefined,
-        accountPassword:  form.createAccount ? form.accountPassword : undefined,
-        assignedTo:       form.assignedTo ? Number(form.assignedTo) : null,
-      });
-      onSaved();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save case.');
-    } finally {
-      setSubmitting(false);
+  // Personal validation
+  if (!form.firstName || !form.lastName)
+    return setError('Please enter the patient\'s first and last name.');
+  if (!form.dob)
+    return setError('Please enter the patient\'s date of birth.');
+  if (!form.sex)
+    return setError('Please select the patient\'s sex.');
+  if (!form.municipality)
+    return setError('Please select a municipality.');
+  if (form.municipality === 'Others (Outside Bohol)' && !form.customAddress)
+    return setError('Please enter the full address.');
+  if (form.municipality !== 'Others (Outside Bohol)' && !form.barangay)
+    return setError('Please select a barangay.');
+  if (!form.contact)
+    return setError('Please enter a contact number.');
+
+  // Exposure validation
+  if (!form.exposureType || !form.dateOfExposure || !form.timeOfExposure || !form.location)
+    return setError('Please fill in all exposure fields.');
+
+  // Animal validation
+  if (!form.animalInvolved || !form.animalStatus)
+    return setError('Please fill in all animal fields.');
+
+  // Wound validation
+  if (!form.woundBleeding || !form.woundWashed || !form.numberOfWounds)
+    return setError('Please fill in all wound fields.');
+
+  // Consent validation
+  if (!form.consentTreatment || !form.consentPrivacy)
+    return setError('Patient must agree to both consents.');
+
+  // Mobile account validation
+  if (form.createAccount && !form.accountEmail)
+    return setError('Please enter an email for the mobile account.');
+  if (form.createAccount && form.accountPassword.length < 6)
+    return setError('Password must be at least 6 characters.');
+
+  setSubmitting(true);
+  try {
+    const formData = new FormData();
+
+    // Build fullName from parts
+    const fullName = [form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ');
+
+    formData.append('fullName',       fullName);
+    formData.append('age',            String(Number(form.age)));
+    formData.append('sex',            form.sex);
+    formData.append('address',        form.address);
+    formData.append('contact',        form.contact);
+    formData.append('exposureType',   form.exposureType);
+    formData.append('dateOfExposure', form.dateOfExposure);
+    formData.append('timeOfExposure', form.timeOfExposure);
+    formData.append('location',       form.location);
+    formData.append('animalInvolved', form.animalInvolved);
+    formData.append('animalStatus',   form.animalStatus);
+    formData.append('woundBleeding',  form.woundBleeding);
+    formData.append('woundWashed',    form.woundWashed);
+    formData.append('numberOfWounds', String(parseInt(form.numberOfWounds) || 0));
+    formData.append('createAccount',  String(form.createAccount));
+
+    if (form.email)            formData.append('email',            form.email);
+    if (form.bodyPartAffected) formData.append('bodyPartAffected', form.bodyPartAffected);
+    if (form.animalVaccinated) formData.append('animalVaccinated', form.animalVaccinated);
+    if (form.assignedTo)       formData.append('assignedTo',       form.assignedTo);
+    if (form.createAccount) {
+      formData.append('accountEmail',    form.accountEmail);
+      formData.append('accountPassword', form.accountPassword);
     }
-  };
+    if (form.document) {
+      formData.append('document', form.document);
+    }
 
+    await apiClient.post('/cases', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    onSaved();
+  } catch (err) {
+    setError(err.response?.data?.message || 'Failed to save case.');
+  } finally {
+    setSubmitting(false);
+  }
+};
   return (
     <PanelShell width="max-w-2xl" onBackdropClick={onClose}>
       {/* Emerald top bar */}
@@ -715,43 +780,130 @@ const AddPanel = ({ onClose, onSaved, staffList }) => {
             </div>
           )}
 
-          {/* Patient Details */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><User size={13} className="text-blue-600" /></div>
-              <div>
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Patient Details</span>
-                <span className="ml-2 text-[10px] text-slate-400">Section 1.2</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="col-span-2">
-                <FormField label="Patient Full Name" required>
-                  <IconInput icon={User} iconColor="#94a3b8" type="text" value={form.fullName} onChange={e => set('fullName')(e.target.value)} placeholder="e.g. Juan Dela Cruz" />
-                </FormField>
-              </div>
-              <FormField label="Age" required>
-                <input type="number" min="0" max="120" value={form.age} onChange={e => set('age')(e.target.value)} placeholder="e.g. 25" className={inputCls} />
-              </FormField>
-              <FormField label="Sex" required>
-                <IconSelect value={form.sex} onChange={e => set('sex')(e.target.value)}>
-                  <option value="">Select sex</option>
-                  <option>Male</option><option>Female</option>
-                </IconSelect>
-              </FormField>
-              <div className="col-span-2">
-                <FormField label="Address" required>
-                  <IconInput icon={MapPin} iconColor="#94a3b8" type="text" value={form.address} onChange={e => set('address')(e.target.value)} placeholder="e.g. Brgy. San Jose, Cebu City" />
-                </FormField>
-              </div>
-              <FormField label="Contact Number" required>
-                <IconInput icon={Phone} iconColor="#94a3b8" type="text" value={form.contact} onChange={e => set('contact')(e.target.value)} placeholder="09XX-XXX-XXXX" />
-              </FormField>
-              <FormField label="Email Address">
-                <input type="email" value={form.email} onChange={e => set('email')(e.target.value)} placeholder="Optional" className={inputCls} />
-              </FormField>
-            </div>
-          </div>
+         {/* Patient Details */}
+<div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><User size={13} className="text-blue-600" /></div>
+    <div>
+      <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Patient Details</span>
+      <span className="ml-2 text-[10px] text-slate-400">Section 1.2</span>
+    </div>
+  </div>
+  <div className="grid grid-cols-2 gap-3.5">
+    <FormField label="First Name" required>
+      <input type="text" value={form.firstName} onChange={e => set('firstName')(e.target.value)} placeholder="Juan" className={inputCls} />
+    </FormField>
+    <FormField label="Middle Name">
+      <input type="text" value={form.middleName} onChange={e => set('middleName')(e.target.value)} placeholder="Optional" className={inputCls} />
+    </FormField>
+    <div className="col-span-2">
+      <FormField label="Last Name" required>
+        <input type="text" value={form.lastName} onChange={e => set('lastName')(e.target.value)} placeholder="Dela Cruz" className={inputCls} />
+      </FormField>
+    </div>
+    <FormField label="Date of Birth" required>
+      <input
+        type="date"
+        value={form.dob}
+        onChange={e => {
+          const dob = e.target.value;
+          set('dob')(dob);
+          // Auto-compute age
+          if (dob) {
+            const birth = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            set('age')(age >= 0 ? String(age) : '');
+          }
+        }}
+        className={inputCls}
+      />
+    </FormField>
+    <FormField label="Age (Auto-computed)">
+      <input type="number" value={form.age} readOnly placeholder="—" className={`${inputCls} bg-slate-50 cursor-not-allowed opacity-70`} />
+    </FormField>
+    <FormField label="Sex" required>
+      <IconSelect value={form.sex} onChange={e => set('sex')(e.target.value)}>
+        <option value="">Select sex</option>
+        <option>Male</option><option>Female</option>
+      </IconSelect>
+    </FormField>
+    <FormField label="Contact Number" required>
+      <IconInput icon={Phone} iconColor="#94a3b8" type="text" value={form.contact} onChange={e => set('contact')(e.target.value)} placeholder="09XX-XXX-XXXX" />
+    </FormField>
+    <div className="col-span-2">
+      <FormField label="Email Address">
+        <input type="email" value={form.email} onChange={e => set('email')(e.target.value)} placeholder="email@gmail.com " className={inputCls} />
+      </FormField>
+    </div>
+
+    {/* Municipality Dropdown */}
+    <div className="col-span-2">
+      <FormField label="Municipality" required>
+        <IconSelect
+          icon={MapPin}
+          iconColor="#94a3b8"
+          value={form.municipality}
+          onChange={e => {
+            set('municipality')(e.target.value);
+            set('barangay')(''); // reset barangay
+            // update address
+            set('address')(e.target.value);
+          }}
+        >
+          <option value="">Select municipality...</option>
+          {MUNICIPALITIES.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+          <option value="Others (Outside Bohol)">Others (Outside Bohol)</option>
+        </IconSelect>
+      </FormField>
+    </div>
+
+    {/* Custom address if Others */}
+    {form.municipality === 'Others (Outside Bohol)' && (
+      <div className="col-span-2">
+        <FormField label="Full Address" required>
+          <IconInput
+            icon={MapPin}
+            iconColor="#94a3b8"
+            type="text"
+            value={form.customAddress}
+            onChange={e => {
+              set('customAddress')(e.target.value);
+              set('address')(e.target.value);
+            }}
+            placeholder="Enter complete address..."
+          />
+        </FormField>
+      </div>
+    )}
+
+    {/* Barangay Dropdown */}
+    {form.municipality && form.municipality !== 'Others (Outside Bohol)' && (
+      <div className="col-span-2">
+        <FormField label="Barangay" required>
+          <IconSelect
+            icon={MapPin}
+            iconColor="#94a3b8"
+            value={form.barangay}
+            onChange={e => {
+              set('barangay')(e.target.value);
+              set('address')(`${e.target.value}, ${form.municipality}`);
+            }}
+          >
+            <option value="">Select barangay...</option>
+            {(BOHOL_DATA[form.municipality] || []).map(b => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </IconSelect>
+        </FormField>
+      </div>
+    )}
+  </div>
+</div>
 
           {/* Exposure */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">

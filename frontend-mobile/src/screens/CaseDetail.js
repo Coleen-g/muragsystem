@@ -35,8 +35,8 @@ const pill = StyleSheet.create({
   text: { fontSize: 12, fontWeight: '700' },
 });
 
-const Section = ({ icon: Icon, title, accentColor, children }) => (
-  <View style={card.wrap}>
+const Section = ({ icon: Icon, title, accentColor, children, colors }) => (
+  <View style={[card.wrap, { backgroundColor: colors.card }] }>
     <View style={[card.header, { backgroundColor: accentColor + '14', borderLeftColor: accentColor }]}>
       <Icon color={accentColor} size={15} />
       <Text style={[card.title, { color: accentColor }]}>{title}</Text>
@@ -51,10 +51,10 @@ const card = StyleSheet.create({
   body:   { paddingHorizontal: 16, paddingBottom: 4 },
 });
 
-const InfoRow = ({ label, value, last }) => (
+const InfoRow = ({ label, value, last, colors }) => (
   <View style={[row.wrap, !last && row.border]}>
-    <Text style={row.label}>{label}</Text>
-    <Text style={row.value} numberOfLines={2}>{value || '—'}</Text>
+    <Text style={[row.label, { color: colors.subText }]}>{label}</Text>
+    <Text style={[row.value, { color: colors.text }]} numberOfLines={2}>{value || '—'}</Text>
   </View>
 );
 const row = StyleSheet.create({
@@ -154,9 +154,11 @@ export default function CaseDetail({ navigation, route }) {
       setPatientData(patient);
       if (patient?.id) {
         try {
-          const vacRes = await apiClient.get('/vaccinations', { params: { limit: 1 } });
-          const allVax = vacRes.data.vaccinations || [];
-          const linked = allVax.find(v => v.patientRef === patient.id);
+          const vacRes = await apiClient.get('/vaccinations/my');
+          const allVax = vacRes.data || [];
+         const linked = allVax.find(v =>
+          String(v.caseId) === String(caseData.caseId)
+        );
           setVaccinationData(linked || null);
         } catch (_) { setVaccinationData(null); }
       }
@@ -195,7 +197,7 @@ export default function CaseDetail({ navigation, route }) {
       <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* Blue Header */}
-      <View style={styles.headerWrap}>
+      <View style={[styles.headerWrap, { backgroundColor: colors.header }]}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={styles.headerRow}>
@@ -220,36 +222,36 @@ export default function CaseDetail({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1565C0" />}
       >
-        <Section icon={User}     title="Personal Information"   accentColor="#1565C0">
-          <InfoRow label="Full Name" value={caseData?.fullName} />
-          <InfoRow label="Age"       value={caseData?.age?.toString()} />
-          <InfoRow label="Sex"       value={caseData?.sex} />
-          <InfoRow label="Contact"   value={caseData?.contact} />
-          <InfoRow label="Email"     value={caseData?.email} />
-          <InfoRow label="Address"   value={caseData?.address} last />
+        <Section icon={User}     title="Personal Information"   accentColor="#1565C0" colors={colors}>
+          <InfoRow label="Full Name" value={caseData?.fullName} colors={colors} />
+          <InfoRow label="Age"       value={caseData?.age?.toString()} colors={colors} />
+          <InfoRow label="Sex"       value={caseData?.sex} colors={colors} />
+          <InfoRow label="Contact"   value={caseData?.contact} colors={colors} />
+          <InfoRow label="Email"     value={caseData?.email} colors={colors} />
+          <InfoRow label="Address"   value={caseData?.address} last colors={colors} />
         </Section>
 
-        <Section icon={Zap}      title="Exposure Information"   accentColor="#f97316">
-          <InfoRow label="Date of Exposure" value={fmt(caseData?.dateOfExposure)} />
-          <InfoRow label="Time"             value={caseData?.timeOfExposure} />
-          <InfoRow label="Location"         value={caseData?.location} />
-          <InfoRow label="Exposure Type"    value={caseData?.exposureType} />
-          <InfoRow label="Body Part"        value={caseData?.bodyPartAffected} last />
+        <Section icon={Zap}      title="Exposure Information"   accentColor="#f97316" colors={colors}>
+          <InfoRow label="Date of Exposure" value={fmt(caseData?.dateOfExposure)} colors={colors} />
+          <InfoRow label="Time"             value={caseData?.timeOfExposure} colors={colors} />
+          <InfoRow label="Location"         value={caseData?.location} colors={colors} />
+          <InfoRow label="Exposure Type"    value={caseData?.exposureType} colors={colors} />
+          <InfoRow label="Body Part"        value={caseData?.bodyPartAffected} last colors={colors} />
         </Section>
 
-        <Section icon={Cat}      title="Animal Information"     accentColor="#8b5cf6">
-          <InfoRow label="Animal"     value={caseData?.animalInvolved} />
-          <InfoRow label="Ownership"  value={caseData?.animalStatus} />
-          <InfoRow label="Vaccinated" value={caseData?.animalVaccinated} last />
+        <Section icon={Cat}      title="Animal Information"     accentColor="#8b5cf6" colors={colors}>
+          <InfoRow label="Animal"     value={caseData?.animalInvolved} colors={colors} />
+          <InfoRow label="Ownership"  value={caseData?.animalStatus} colors={colors} />
+          <InfoRow label="Vaccinated" value={caseData?.animalVaccinated} last colors={colors} />
         </Section>
 
-        <Section icon={Scissors} title="Wound Information"      accentColor="#ef4444">
-          <InfoRow label="Bleeding"      value={caseData?.woundBleeding} />
-          <InfoRow label="Washed"        value={caseData?.woundWashed} />
-          <InfoRow label="No. of Wounds" value={caseData?.numberOfWounds?.toString()} last />
+        <Section icon={Scissors} title="Wound Information"      accentColor="#ef4444" colors={colors}>
+          <InfoRow label="Bleeding"      value={caseData?.woundBleeding} colors={colors} />
+          <InfoRow label="Washed"        value={caseData?.woundWashed} colors={colors} />
+          <InfoRow label="No. of Wounds" value={caseData?.numberOfWounds?.toString()} last colors={colors} />
         </Section>
 
-        <Section icon={Syringe}  title="PEP Vaccination Schedule" accentColor="#10b981">
+        <Section icon={Syringe}  title="PEP Vaccination Schedule" accentColor="#10b981" colors={colors}>
           {patientData ? (
             <>
               <View style={styles.pepMetaRow}>

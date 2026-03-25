@@ -23,8 +23,8 @@ const getNavSections = (role) => [
   ...(role === 'admin' ? [{
     title: 'Management',
     items: [
-      { icon: Package,    label: 'Vaccine Inventory',   path: '/inventory' },
-      { icon: Bell,       label: 'SMS Reminders',       path: '/schedule' },
+      
+
       { icon: BarChart2,  label: 'Coverage Monitoring', path: '/coverage' },
       { icon: TrendingUp, label: 'Reports & Analytics', path: '/reports' },
     ],
@@ -150,17 +150,34 @@ export default function MainLayout({ children }) {
       {/* ── Sidebar ── */}
       <aside className={`fixed top-0 left-0 h-full w-64 border-r flex flex-col z-[1000] transition-all duration-300 ${d.sidebarBg} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
 
-        {/* Logo */}
-        <div className="px-5 py-6 flex items-center gap-3"
-          style={{ background: dark ? 'linear-gradient(135deg, #0d1b3e 0%, #0f2354 100%)' : 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}>
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${dark ? 'bg-blue-900/40 border-blue-700/50' : 'bg-white/20 border-white/30'}`}>
-            <Shield className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-white font-bold text-lg leading-tight">Rabies Care</h2>
-            <p className={`text-xs mt-0.5 ${dark ? 'text-blue-400' : 'text-blue-200'}`}>{roleInfo.label}</p>
-          </div>
-        </div>
+       {/* Logo */}
+<div className="px-5 py-6 flex items-center gap-3"
+  style={{ background: dark ? 'linear-gradient(135deg, #0d1b3e 0%, #0f2354 100%)' : 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}>
+  
+  {/* iRabiesCare Shield Logo */}
+  <svg width="44" height="44" viewBox="255 55 170 250" xmlns="http://www.w3.org/2000/svg">
+    <path d="M340 55 L425 88 L425 202 Q425 268 340 300 Q255 268 255 202 L255 88 Z" fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+    <path d="M340 72 L410 100 L410 200 Q410 254 340 282 Q270 254 270 200 L270 100 Z" fill="rgba(255,255,255,0.7)" stroke="none"/>
+    <rect x="322" y="118" width="36" height="100" rx="6" fill="#1a5fa8" opacity="0.95"/>
+    <rect x="292" y="148" width="96" height="36" rx="6" fill="#1a5fa8" opacity="0.95"/>
+    <rect x="335" y="128" width="10" height="60" rx="3" fill="white"/>
+    <rect x="330" y="155" width="20" height="24" rx="2" fill="#5ba4e6"/>
+    <line x1="340" y1="188" x2="340" y2="200" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+    <circle cx="302" cy="158" r="5" fill="white"/>
+    <circle cx="378" cy="158" r="5" fill="white"/>
+    <circle cx="302" cy="172" r="5" fill="white"/>
+    <circle cx="378" cy="172" r="5" fill="white"/>
+  </svg>
+
+  <div>
+    <h2 className="font-bold text-lg leading-tight">
+      <span className="italic text-red-300">i</span>
+      <span className="text-white">Rabies</span>
+      <span className="text-blue-200">Care</span>
+    </h2>
+    <p className={`text-xs mt-0.5 ${dark ? 'text-blue-400' : 'text-blue-200'}`}>{roleInfo.label}</p>
+  </div>
+</div>
 
         {/* Nav */}
         <nav className="flex-1 py-5 overflow-y-auto">

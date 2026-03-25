@@ -61,13 +61,13 @@ export default function CasesScreen({ navigation }) {
       <StatusBar barStyle={colors.statusBar} backgroundColor={colors.header} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.header }]}>
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>My Cases</Text>
-            <Text style={styles.headerSub}>{cases.length} registered case{cases.length !== 1 ? 's' : ''}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>My Cases</Text>
+            <Text style={[styles.headerSub, { color: colors.subText }]}>{cases.length} registered case{cases.length !== 1 ? 's' : ''}</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddCase')}>
             <Text style={styles.addBtnText}>+ New Case</Text>
@@ -75,12 +75,12 @@ export default function CasesScreen({ navigation }) {
         </View>
 
         {/* Search */}
-        <View style={styles.searchRow}>
-          <Search color="rgba(255,255,255,0.6)" size={16} />
+        <View style={[styles.searchRow, { backgroundColor: colors.input, borderColor: colors.border }]}> 
+          <Search color={colors.subText} size={16} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search by name or case ID..."
-            placeholderTextColor="rgba(255,255,255,0.45)"
+            placeholderTextColor={colors.subText}
             value={search}
             onChangeText={setSearch}
           />
@@ -105,7 +105,7 @@ export default function CasesScreen({ navigation }) {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={item => item.id?.toString()}
+          keyExtractor={item => item._id?.toString()}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1565C0" />}
@@ -118,8 +118,11 @@ export default function CasesScreen({ navigation }) {
           }
           renderItem={({ item: c }) => (
             <TouchableOpacity
-              style={styles.caseCard}
-              onPress={() => navigation.navigate('CaseDetail', { caseId: c.id })}
+              style={[styles.caseCard, { backgroundColor: colors.card }]}
+              onPress={() => navigation.navigate('CaseDetail', { 
+              caseId: c._id,
+              caseName: c.fullName 
+            })}
               activeOpacity={0.85}
             >
               <View style={styles.caseIcon}>
@@ -127,11 +130,11 @@ export default function CasesScreen({ navigation }) {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.caseTop}>
-                  <Text style={styles.caseName}>{c.fullName}</Text>
+                  <Text style={[styles.caseName, { color: colors.text }]}>{c.fullName}</Text>
                   <StatusBadge status={c.status} />
                 </View>
-                <Text style={styles.caseSub}>Case #{c.caseId}</Text>
-                <Text style={styles.caseMeta}>
+                <Text style={[styles.caseSub, { color: colors.subText }]}>Case #{c.caseId}</Text>
+                <Text style={[styles.caseMeta, { color: colors.subText }]}> 
                   {c.exposureType || '—'}  ·  {c.dateOfExposure ? `Exposed: ${formatDate(c.dateOfExposure)}` : 'No date'}
                 </Text>
               </View>
