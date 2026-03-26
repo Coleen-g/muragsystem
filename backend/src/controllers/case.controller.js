@@ -81,6 +81,8 @@ exports.createCase = async (req, res) => {
 
     const sanitized = {
       ...caseFields,
+      age:              Number(caseFields.age) || 0,         // ✅ cast string "23" → number 23
+      numberOfWounds:   Number(caseFields.numberOfWounds) || null,  // ✅ cast string "1" → number 1
       email:            caseFields.email            || null,
       bodyPartAffected: caseFields.bodyPartAffected || null,
       animalVaccinated: caseFields.animalVaccinated || null,
