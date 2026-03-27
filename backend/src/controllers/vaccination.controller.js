@@ -54,6 +54,49 @@ const getScheduledDoseMessages = (scheduleFields, previousFields = {}) => {
   return messages;
 };
 
+// Send Manual Reminder for a specific dose
+exports.sendDoseReminder = async (req, res) => {
+  try {
+    const { id, dose } = req.params;
+
+    const DOSE_LABELS = {
+      day0: 'Day 0 (First Dose)',
+      day3: 'Day 3',
+      day7: 'Day 7',
+      day14: 'Day 14',
+      day28: 'Day 28 (Final Dose)',
+    };
+
+    const vaccination = await Vaccination.findById(id);
+    if (!vaccination) return res.status(404).json({ message: 'Vaccination not found.' });
+
+    const scheduledDate = vaccination[`${dose}Scheduled`];
+    if (!scheduledDate) return res.status(400).json({ message: 'No scheduled date for this dose.' });
+
+    const patientUser = await getPatientPushToken(vaccination.patientId);
+    if (!patientUser?.pushToken) return res.status(404).json({ message: 'Patient has no push token registered.' });
+
+    const formattedDate = new Date(scheduledDate).toLocaleDateString('en-PH', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+
+    await sendPushNotification(
+      patientUser.pushToken,
+      '💉 Vaccine Reminder',
+      `Hi ${patientUser.name}! Your ${DOSE_LABELS[dose]} anti-rabies vaccine is scheduled on ${formattedDate}. Please visit your health center.`,
+      { type: 'vaccination_reminder', vaccinationId: id, dose }
+    );
+
+    res.status(200).json({ message: `Reminder sent for ${DOSE_LABELS[dose]}` });
+  } catch (error) {
+    console.error('sendDoseReminder error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
 // Get All Vaccinations — scoped by role
 exports.getAllVaccinations = async (req, res) => {
   try {

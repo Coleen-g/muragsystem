@@ -11,5 +11,7 @@ router.get('/:id',      protect, vaccinationController.getVaccinationById);
 router.post('/',        protect, vaccinationController.createVaccination);
 router.put('/:id',      protect, vaccinationController.updateVaccination);
 router.delete('/:id',   protect, vaccinationController.deleteVaccination);
+// POST /api/vaccinations/:id/remind/:dose
+router.post('/:id/remind/:dose', protect, vaccinationController.sendDoseReminder);
 
 module.exports = router;
