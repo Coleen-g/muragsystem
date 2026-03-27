@@ -21,10 +21,24 @@ const getPatientPushToken = async (patientId) => {
     if (!patient) return null;
 
     const caseRecord = await Case.findById(patient.caseId);
-    if (!caseRecord?.patientUserId) return null;
+    if (!caseRecord) return null;
 
-    const user = await User.findById(caseRecord.patientUserId).select('pushToken name');
-    return user?.pushToken ? { pushToken: user.pushToken, name: user.name } : null;
+    // Try patientUserId first, fallback to createdBy
+    const userId = caseRecord.patientUserId || caseRecord.createdBy;
+    if (!userId) return null;
+
+    const user = await User.findById(userId).select('pushToken name');
+    if (!user?.pushToken) return null;
+
+    // Check if this is the patient's own case or someone else's
+    const isOwnCase = caseRecord.patientUserId?.toString() === userId.toString();
+
+    return {
+      pushToken: user.pushToken,
+      name: user.name,
+      patientName: patient.fullName,
+      isOwnCase,
+    };
   } catch {
     return null;
   }
@@ -80,12 +94,16 @@ exports.sendDoseReminder = async (req, res) => {
       month: 'long', day: 'numeric', year: 'numeric',
     });
 
-    await sendPushNotification(
-      patientUser.pushToken,
-      '💉 Vaccine Reminder',
-      `Hi ${patientUser.name}! Your ${DOSE_LABELS[dose]} anti-rabies vaccine is scheduled on ${formattedDate}. Please visit your health center.`,
-      { type: 'vaccination_reminder', vaccinationId: id, dose }
-    );
+    const message = patientUser.isOwnCase
+  ? `Hi ${patientUser.name}! Your ${DOSE_LABELS[dose]} anti-rabies vaccine is scheduled on ${formattedDate}. Please visit your health center.`
+  : `Hi ${patientUser.name}! Your registered patient ${patientUser.patientName} has a ${DOSE_LABELS[dose]} anti-rabies vaccine scheduled on ${formattedDate}. Please visit your health center.`;
+
+      await sendPushNotification(
+        patientUser.pushToken,
+        '💉 Vaccine Reminder',
+        message,
+        { type: 'vaccination_reminder', vaccinationId: id, dose }
+      );
 
     res.status(200).json({ message: `Reminder sent for ${DOSE_LABELS[dose]}` });
   } catch (error) {
@@ -263,10 +281,15 @@ exports.createVaccination = async (req, res) => {
       if (patientUser?.pushToken) {
         const scheduledDoses = getScheduledDoseMessages(scheduleFields);
         if (scheduledDoses.length > 0) {
+
+          const scheduleMessage = patientUser.isOwnCase
+            ? `Your anti-rabies vaccine schedule has been set:\n${scheduledDoses.join('\n')}`
+            : `Your registered patient ${patientUser.patientName}'s vaccine schedule has been set:\n${scheduledDoses.join('\n')}`;
+
           await sendPushNotification(
             patientUser.pushToken,
             'Vaccination Schedule Set',
-            `Your anti-rabies vaccine schedule has been set:\n${scheduledDoses.join('\n')}`,
+            scheduleMessage,
             { type: 'vaccination_scheduled', vaccinationId: newVaccination._id.toString() }
           );
           console.log(`[Push] Vaccination schedule sent to ${patientUser.name}`);
@@ -342,10 +365,15 @@ exports.updateVaccination = async (req, res) => {
       if (patientUser?.pushToken) {
         const newDoses = getScheduledDoseMessages(scheduleFields, previousFields);
         if (newDoses.length > 0) {
+
+          const updateMessage = patientUser.isOwnCase
+            ? `Your anti-rabies vaccine schedule has been updated:\n${newDoses.join('\n')}`
+            : `Your registered patient ${patientUser.patientName}'s vaccine schedule has been updated:\n${newDoses.join('\n')}`;
+
           await sendPushNotification(
             patientUser.pushToken,
             'Vaccination Schedule Updated',
-            `Your anti-rabies vaccine schedule has been updated:\n${newDoses.join('\n')}`,
+            updateMessage,
             { type: 'vaccination_scheduled', vaccinationId: vaccination._id.toString() }
           );
           console.log(`[Push] Updated vaccination schedule sent to ${patientUser.name}`);
