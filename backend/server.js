@@ -51,6 +51,7 @@ app.use('/api/vaccinations', require('./src/routes/vaccination.routes'));
 app.use('/api/animals',      require('./src/routes/animal.routes'));
 app.use('/api/activity',     require('./src/routes/activityLog.routes'));
 app.use('/api/chat',         require('./src/routes/chatbot.routes'));
+app.use('/api/notifications', require('./routes/notifications.routes'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
