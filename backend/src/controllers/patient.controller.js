@@ -67,6 +67,16 @@ exports.createPatient = async (req, res) => {
       doses: doses || [], nextSchedule: nextSchedule || null, caseOutcome,
     });
 
+    // after: const patient = await Patient.create({...});
+
+    const io = req.app.get('io');
+    if (io) io.emit('new_notification', {
+      type: 'patient',
+      message: `New patient record created for ${linkedCase.fullName}`,
+      createdBy: req.user.name,
+      createdAt: new Date(),
+    });
+
       await logActivity({
     action: 'CREATE', module: 'Patient',
     description: `Patient record created for ${linkedCase.fullName}`,

@@ -18,6 +18,16 @@ exports.register = async (req, res) => {
 
     const user = await User.create({ name, email, password });
 
+        // after: const user = await User.create({...});
+
+        const io = req.app.get('io');
+        if (io) io.emit('new_notification', {
+          type: 'user',
+          message: `New user registered: ${name}`,
+          createdBy: name,
+          createdAt: new Date(),
+        });
+
     user.isOnline = true;
     user.lastSeen = new Date();
     await user.save();

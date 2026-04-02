@@ -85,6 +85,16 @@ exports.createAnimal = async (req, res) => {
       createdBy: req.user.id,
     });
 
+        // after: const newAnimal = await Animal.create({...});
+
+      const io = req.app.get('io');
+      if (io) io.emit('new_notification', {
+        type: 'animal',
+        message: `New animal record created for Case #${linkedCase.caseId}`,
+        createdBy: req.user.name,
+        createdAt: new Date(),
+      });
+
      await logActivity({
       action: 'CREATE', module: 'Animal',
       description: `Animal record created for Case #${linkedCase.caseId}`,
